@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -7,45 +7,48 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    minlength: 3
+    minlength: 3,
   },
   email: {
     type: String,
     required: true,
     unique: true,
     lowercase: true,
-    trim: true
+    trim: true,
   },
   password: {
     type: String,
     required: true,
-    minlength: 6
+    minlength: 6,
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-userSchema.pre('save', async function(next) {
+// --- FIX STARTS HERE ---
+// 1. Remove 'next' from the parameters
+userSchema.pre("save", async function () {
   const user = this;
 
-  if (!user.isModified('password')) {
-    return next();
+  // 2. If password isn't modified, simply return (the Promise resolves automatically)
+  if (!user.isModified("password")) {
+    return;
   }
 
-  try {
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(user.password, salt);
-    user.password = hash;
-    return next();
-  } catch (error) {
-    return next(error);
-  }
+  // 3. No try/catch needed for 'next'. If this fails, the Promise rejects
+  // and Mongoose passes the error to the controller automatically.
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash(user.password, salt);
+  user.password = hash;
+
+  // 4. Do NOT call next(). The function ending signifies success.
 });
+// --- FIX ENDS HERE ---
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);
