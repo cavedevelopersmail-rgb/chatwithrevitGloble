@@ -547,16 +547,19 @@ const Chat = () => {
               InputProps={{ disableUnderline: true, style: { color: "white" } }}
               sx={{ ml: 1, flex: 1 }}
             />
+            {/* --- UPDATED SEND BUTTON BELOW --- */}
             <IconButton
               type="submit"
               disabled={!newMessage.trim() || isTyping}
               sx={{
+                // CHANGED: Purple (#667eea) -> Green (#00e676)
                 bgcolor: newMessage.trim()
-                  ? "#667eea"
+                  ? "#00e676"
                   : "rgba(255,255,255,0.1)",
                 color: "white",
                 transition: "0.2s",
-                "&:hover": { bgcolor: "#764ba2", transform: "scale(1.1)" },
+                // CHANGED: Hover Purple (#764ba2) -> Darker Green (#00a152)
+                "&:hover": { bgcolor: "#00a152", transform: "scale(1.1)" },
               }}
             >
               <Send fontSize="small" />
