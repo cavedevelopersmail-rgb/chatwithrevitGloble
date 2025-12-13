@@ -253,7 +253,7 @@ const Chat = () => {
               WebkitTextFillColor: "transparent",
             }}
           >
-            Revit AI
+            Rivet AI
           </Typography>
           <IconButton
             onClick={() => setDrawerOpen(false)}
@@ -317,7 +317,7 @@ const Chat = () => {
             </Avatar>
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="subtitle1" fontWeight="bold">
-                Revit Agent
+                Rivet Agent
               </Typography>
               <Box display="flex" alignItems="center" gap={0.5}>
                 <Box
