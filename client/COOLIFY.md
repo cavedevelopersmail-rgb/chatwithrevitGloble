@@ -60,22 +60,8 @@ If you prefer to use Docker Compose with Coolify:
 
 1. Create a new application
 2. Select "Docker Compose" as type
-3. Use the following configuration:
-
-```yaml
-version: "3.8"
-
-services:
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    ports:
-      - "80:80"
-    environment:
-      - NODE_ENV=production
-    restart: unless-stopped
-```
+3. Set **Docker Compose Location** to `/client/docker-compose.yml`
+4. The configuration is already in the file at `/client/docker-compose.yml`
 
 ## Environment Variables for Different Environments
 
@@ -120,11 +106,11 @@ VITE_API_URL=https://api.yourapp.com/api
 3. Test nginx configuration
 4. Confirm environment variables are set correctly
 
-**Common Dockerfile Issues:**
+**Common Docker Compose Issues:**
 
-- **"unknown instruction" error:** Ensure you're pointing to the correct Dockerfile path
+- **"File not found" error:** Ensure Docker Compose Location points to `/client/docker-compose.yml`
 - **Build context issues:** Make sure build context includes all necessary files
-- **Dependency installation:** Build stage needs all dependencies (dev + prod)
+- **Environment variables:** Use `${VITE_API_URL:-default}` format in docker-compose.yml
 
 ## Post-Deployment
 
