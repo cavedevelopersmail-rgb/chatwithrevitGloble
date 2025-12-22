@@ -29,6 +29,7 @@ import {
 import { motion } from "framer-motion";
 import { styled, alpha } from "@mui/material/styles";
 import authService from "../../services/authService";
+import rivetLogo from "../../assets/rivetGlobalpng.png";
 
 // --- THEME CONSTANTS ---
 const PRIMARY_COLOR = "#3B82F6"; // Electric Blue
@@ -210,15 +211,21 @@ const Login = () => {
           <Box>
             <Stack direction="row" alignItems="center" gap={1}>
               <Box
+                component="img"
+                src={rivetLogo}
+                alt="Rivet Global"
                 sx={{
                   width: 40,
                   height: 40,
                   borderRadius: "8px",
-                  background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
+                  objectFit: "cover",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  backgroundColor: "rgba(255,255,255,0.05)",
+                  p: 0.5,
                 }}
               />
               <Typography variant="h5" fontWeight="700" letterSpacing={1}>
-                Rivet<span style={{ color: PRIMARY_COLOR }}>AI</span>
+                Rivet <span style={{ color: PRIMARY_COLOR }}>AI</span>
               </Typography>
             </Stack>
           </Box>

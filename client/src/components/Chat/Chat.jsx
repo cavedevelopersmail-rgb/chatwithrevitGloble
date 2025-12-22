@@ -35,6 +35,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { styled } from "@mui/material/styles";
 import authService from "../../services/authService";
 import chatService from "../../services/chatService";
+import rivetLogo from "../../assets/rivetGlobalpng.png";
 
 // --- STYLED COMPONENTS FOR "OSM" AESTHETIC ---
 
@@ -312,9 +313,9 @@ const Chat = () => {
                 mr: 1,
                 border: "1px solid rgba(255,255,255,0.3)",
               }}
-            >
-              <SmartToy sx={{ color: "#a8c0ff" }} />
-            </Avatar>
+              src={rivetLogo}
+              alt="Rivet Global"
+            />
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="subtitle1" fontWeight="bold">
                 Rivet Agent
@@ -455,9 +456,9 @@ const Chat = () => {
                         bgcolor: "rgba(255,255,255,0.1)",
                         mt: 1,
                       }}
-                    >
-                      <SmartToy sx={{ fontSize: 16, color: "#a8c0ff" }} />
-                    </Avatar>
+                      src={rivetLogo}
+                      alt="Rivet Global"
+                    />
                     <MessageBubble
                       isUser={false}
                       initial={{ opacity: 0, x: -20 }}
@@ -497,9 +498,9 @@ const Chat = () => {
             <Box sx={{ alignSelf: "flex-start", display: "flex", gap: 1 }}>
               <Avatar
                 sx={{ width: 28, height: 28, bgcolor: "rgba(255,255,255,0.1)" }}
-              >
-                <SmartToy sx={{ fontSize: 16, color: "#a8c0ff" }} />
-              </Avatar>
+                src={rivetLogo}
+                alt="Rivet Global"
+              />
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
