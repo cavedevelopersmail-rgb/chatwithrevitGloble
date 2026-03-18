@@ -39,13 +39,16 @@ const TEXT_SECONDARY = "#9CA3AF";
 
 // --- STYLED COMPONENTS ---
 
-const RootContainer = styled(Box)({
+const RootContainer = styled(Box)(({ theme }) => ({
   minHeight: "100vh",
-  height: "100dvh", // Fixes mobile address bar scrolling
+  height: "100dvh",
   display: "flex",
   backgroundColor: BG_DARK,
   overflow: "hidden",
-});
+  [theme.breakpoints.down("sm")]: {
+    minHeight: "100dvh",
+  },
+}));
 
 // Left Side: The Visual/Branding Area
 const BrandSection = styled(Grid)(({ theme }) => ({
@@ -79,11 +82,17 @@ const FormSection = styled(Grid)(({ theme }) => ({
   padding: theme.spacing(4),
   boxShadow: "-10px 0 30px rgba(0,0,0,0.2)",
   [theme.breakpoints.down("md")]: {
-    backgroundColor: BG_DARK, // Seamless on mobile
+    backgroundColor: BG_DARK,
     backgroundImage: `radial-gradient(circle at 50% 0%, ${alpha(
       PRIMARY_COLOR,
       0.15
     )} 0%, transparent 50%)`,
+    padding: theme.spacing(3),
+  },
+  [theme.breakpoints.down("sm")]: {
+    padding: theme.spacing(2),
+    justifyContent: "flex-start",
+    paddingTop: theme.spacing(6),
   },
 }));
 
@@ -93,6 +102,7 @@ const FormWrapper = styled(motion.div)(({ theme }) => ({
   padding: theme.spacing(0),
   [theme.breakpoints.down("sm")]: {
     maxWidth: "100%",
+    padding: theme.spacing(0, 1),
   },
 }));
 
@@ -132,7 +142,7 @@ const ModernTextField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const ActionButton = styled(Button)({
+const ActionButton = styled(Button)(({ theme }) => ({
   backgroundColor: PRIMARY_COLOR,
   color: "white",
   fontWeight: 600,
@@ -143,7 +153,7 @@ const ActionButton = styled(Button)({
   boxShadow: `0 4px 14px 0 ${alpha(PRIMARY_COLOR, 0.4)}`,
   transition: "all 0.2s ease-in-out",
   "&:hover": {
-    backgroundColor: "#2563EB", // Slightly darker blue
+    backgroundColor: "#2563EB",
     transform: "translateY(-1px)",
     boxShadow: `0 6px 20px 0 ${alpha(PRIMARY_COLOR, 0.6)}`,
   },
@@ -151,7 +161,11 @@ const ActionButton = styled(Button)({
     backgroundColor: alpha(PRIMARY_COLOR, 0.3),
     color: alpha("#fff", 0.5),
   },
-});
+  [theme.breakpoints.down("sm")]: {
+    fontSize: "0.95rem",
+    padding: "11px 20px",
+  },
+}));
 
 const SocialButton = styled(Button)(({ theme }) => ({
   borderColor: alpha("#fff", 0.15),
@@ -231,7 +245,7 @@ const Login = () => {
           </Box>
 
           {/* Middle Content */}
-          <Box sx={{ maxWidth: "500px", mb: 8 }}>
+          <Box sx={{ maxWidth: "500px", mb: { xs: 4, md: 8 } }}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -240,7 +254,11 @@ const Login = () => {
               <Typography
                 variant="h2"
                 fontWeight="800"
-                sx={{ mb: 2, lineHeight: 1.2 }}
+                sx={{
+                  mb: 2,
+                  lineHeight: 1.2,
+                  fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" }
+                }}
               >
                 U Turn To Smart <br />
                 <span
@@ -255,7 +273,11 @@ const Login = () => {
               </Typography>
               <Typography
                 variant="h6"
-                sx={{ color: TEXT_SECONDARY, fontWeight: 400 }}
+                sx={{
+                  color: TEXT_SECONDARY,
+                  fontWeight: 400,
+                  fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
+                }}
               >
                 Experience the next generation Ai Assistant Secure, fast, and
                 responsive.
@@ -278,16 +300,21 @@ const Login = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <Box mb={4} textAlign={{ xs: "center", sm: "left" }}>
+            <Box mb={{ xs: 3, sm: 4 }} textAlign={{ xs: "center", sm: "left" }}>
               <Typography
                 variant="h4"
                 fontWeight="700"
                 color="white"
                 gutterBottom
+                sx={{ fontSize: { xs: "1.75rem", sm: "2.125rem" } }}
               >
                 Welcome back
               </Typography>
-              <Typography variant="body1" color={TEXT_SECONDARY}>
+              <Typography
+                variant="body1"
+                color={TEXT_SECONDARY}
+                sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}
+              >
                 Please enter your details to sign in.
               </Typography>
             </Box>
@@ -320,9 +347,14 @@ const Login = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <EmailOutlined />
+                      <EmailOutlined sx={{ fontSize: { xs: 18, sm: 20 } }} />
                     </InputAdornment>
                   ),
+                }}
+                sx={{
+                  "& .MuiInputBase-input": {
+                    fontSize: { xs: "0.95rem", sm: "1rem" },
+                  },
                 }}
               />
 
@@ -337,7 +369,7 @@ const Login = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <LockOutlined />
+                      <LockOutlined sx={{ fontSize: { xs: 18, sm: 20 } }} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -345,12 +377,21 @@ const Login = () => {
                       <IconButton
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
-                        sx={{ color: TEXT_SECONDARY }}
+                        sx={{ color: TEXT_SECONDARY, p: { xs: 1, sm: 1.5 } }}
                       >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                        {showPassword ? (
+                          <VisibilityOff sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                        ) : (
+                          <Visibility sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                        )}
                       </IconButton>
                     </InputAdornment>
                   ),
+                }}
+                sx={{
+                  "& .MuiInputBase-input": {
+                    fontSize: { xs: "0.95rem", sm: "1rem" },
+                  },
                 }}
               />
 
@@ -358,9 +399,8 @@ const Login = () => {
                 display="flex"
                 justifyContent="space-between"
                 alignItems="center"
-                mb={3}
+                mb={{ xs: 2.5, sm: 3 }}
               >
-                {/* Optional Checkbox could go here */}
                 <Box />
                 <Link
                   href="#"
@@ -368,7 +408,7 @@ const Login = () => {
                   sx={{
                     color: PRIMARY_COLOR,
                     fontWeight: 500,
-                    fontSize: "0.9rem",
+                    fontSize: { xs: "0.85rem", sm: "0.9rem" },
                   }}
                 >
                   Forgot password?
@@ -414,7 +454,11 @@ const Login = () => {
             </Stack> */}
 
             <Box textAlign="center">
-              <Typography variant="body2" color={TEXT_SECONDARY}>
+              <Typography
+                variant="body2"
+                color={TEXT_SECONDARY}
+                sx={{ fontSize: { xs: "0.85rem", sm: "0.875rem" } }}
+              >
                 Don't have an account?{" "}
                 <Link
                   component="button"
@@ -424,6 +468,7 @@ const Login = () => {
                     fontWeight: 600,
                     textDecoration: "none",
                     cursor: "pointer",
+                    fontSize: { xs: "0.85rem", sm: "0.875rem" },
                     "&:hover": { textDecoration: "underline" },
                   }}
                 >

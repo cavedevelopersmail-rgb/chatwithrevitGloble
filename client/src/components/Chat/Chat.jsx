@@ -58,7 +58,11 @@ const GradientBackground = styled(Box)(({ theme }) => ({
   width: "100vw",
   display: "flex",
   overflow: "hidden",
-  position: "relative",
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
   [theme.breakpoints.down('sm')]: {
     height: "100dvh",
   },
@@ -89,7 +93,7 @@ const MessageBubble = styled(motion.div)(({ isUser, theme }) => ({
   wordBreak: "break-word",
   overflowWrap: "break-word",
   [theme.breakpoints.down('sm')]: {
-    maxWidth: "85%",
+    maxWidth: "90%",
     padding: "10px 14px",
     fontSize: "0.9rem",
   },
@@ -916,10 +920,15 @@ const Chat = () => {
                 disableUnderline: true,
                 style: {
                   color: "white",
-                  fontSize: window.innerWidth < 600 ? "0.95rem" : "1rem",
                 }
               }}
-              sx={{ ml: { xs: 0.5, sm: 1 }, flex: 1 }}
+              sx={{
+                ml: { xs: 0.5, sm: 1 },
+                flex: 1,
+                "& .MuiInputBase-input": {
+                  fontSize: { xs: "0.95rem", sm: "1rem" },
+                }
+              }}
             />
             <IconButton
               type="submit"

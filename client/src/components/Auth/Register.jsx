@@ -23,17 +23,22 @@ import authService from "../../services/authService";
 
 // --- STYLED COMPONENTS ---
 
-const BackgroundContainer = styled(Box)({
+const BackgroundContainer = styled(Box)(({ theme }) => ({
   width: "100%",
   minHeight: "100vh",
-  height: "100dvh", // Dynamic Viewport Height for mobile browsers
+  height: "100dvh",
   background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
   position: "relative",
-  overflow: "hidden", // Prevents orbs from causing scrollbars
-});
+  overflow: "hidden",
+  [theme.breakpoints.down("sm")]: {
+    alignItems: "flex-start",
+    paddingTop: theme.spacing(4),
+    minHeight: "100dvh",
+  },
+}));
 
 // Floating orbs with pointer-events: none so they don't block inputs
 const FloatingOrb = styled(motion.div)(
@@ -59,21 +64,25 @@ const GlassCard = styled(motion.div)(({ theme }) => ({
   backdropFilter: "blur(20px)",
   border: "1px solid rgba(255, 255, 255, 0.1)",
   borderRadius: "24px",
-  // Responsive padding: smaller on mobile, larger on desktop
   padding: "24px",
   [theme.breakpoints.up("sm")]: {
     padding: "40px",
   },
-  width: "90%", // Prevents touching edges on mobile
+  width: "90%",
   maxWidth: "420px",
   boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
   zIndex: 1,
   color: "white",
   display: "flex",
   flexDirection: "column",
+  [theme.breakpoints.down("sm")]: {
+    width: "92%",
+    padding: "20px",
+    borderRadius: "20px",
+  },
 }));
 
-const StyledTextField = styled(TextField)({
+const StyledTextField = styled(TextField)(({ theme }) => ({
   marginBottom: "20px",
   "& .MuiOutlinedInput-root": {
     color: "white",
@@ -90,9 +99,18 @@ const StyledTextField = styled(TextField)({
   "& .MuiInputLabel-root": { color: "rgba(255, 255, 255, 0.7)" },
   "& .MuiInputLabel-root.Mui-focused": { color: "#a8c0ff" },
   "& .MuiInputAdornment-root": { color: "rgba(255, 255, 255, 0.7)" },
-});
+  [theme.breakpoints.down("sm")]: {
+    marginBottom: "16px",
+    "& .MuiInputBase-input": {
+      fontSize: "0.95rem",
+    },
+    "& .MuiInputLabel-root": {
+      fontSize: "0.9rem",
+    },
+  },
+}));
 
-const GradientButton = styled(Button)({
+const GradientButton = styled(Button)(({ theme }) => ({
   background: "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
   border: 0,
   borderRadius: "12px",
@@ -110,7 +128,12 @@ const GradientButton = styled(Button)({
     transform: "scale(1.02)",
     boxShadow: "0 0 15px rgba(118, 75, 162, 0.5)",
   },
-});
+  [theme.breakpoints.down("sm")]: {
+    height: 44,
+    fontSize: "0.95rem",
+    padding: "0 24px",
+  },
+}));
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -174,7 +197,7 @@ const Register = () => {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <Box display="flex" flexDirection="column" alignItems="center" mb={3}>
+        <Box display="flex" flexDirection="column" alignItems="center" mb={{ xs: 2.5, sm: 3 }}>
           <motion.div
             initial={{ rotate: 15, scale: 0.5, opacity: 0 }}
             animate={{ rotate: 0, scale: 1, opacity: 1 }}
@@ -182,29 +205,34 @@ const Register = () => {
           >
             <Box
               sx={{
-                p: 2,
+                p: { xs: 1.5, sm: 2 },
                 borderRadius: "50%",
                 background: "linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)",
                 boxShadow: "0 0 20px rgba(168, 192, 255, 0.4)",
-                mb: 2,
+                mb: { xs: 1.5, sm: 2 },
                 display: "flex",
               }}
             >
-              <HowToReg sx={{ fontSize: 32, color: "white" }} />
+              <HowToReg sx={{ fontSize: { xs: 28, sm: 32 }, color: "white" }} />
             </Box>
           </motion.div>
 
           <Typography
             variant="h4"
             fontWeight="bold"
-            sx={{ fontSize: { xs: "1.75rem", sm: "2.125rem" } }} // Responsive font size
+            sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}
           >
             Create Account
           </Typography>
 
           <Typography
             variant="body2"
-            sx={{ color: "rgba(255,255,255,0.6)", mt: 1, textAlign: "center" }}
+            sx={{
+              color: "rgba(255,255,255,0.6)",
+              mt: { xs: 0.75, sm: 1 },
+              textAlign: "center",
+              fontSize: { xs: "0.85rem", sm: "0.875rem" }
+            }}
           >
             Join us to start chatting with Rivet AI
           </Typography>
@@ -240,7 +268,7 @@ const Register = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Person />
+                  <Person sx={{ fontSize: { xs: 18, sm: 20 } }} />
                 </InputAdornment>
               ),
             }}
@@ -257,7 +285,7 @@ const Register = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Email />
+                  <Email sx={{ fontSize: { xs: 18, sm: 20 } }} />
                 </InputAdornment>
               ),
             }}
@@ -274,7 +302,7 @@ const Register = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Lock />
+                  <Lock sx={{ fontSize: { xs: 18, sm: 20 } }} />
                 </InputAdornment>
               ),
               endAdornment: (
@@ -282,9 +310,13 @@ const Register = () => {
                   <IconButton
                     onClick={() => setShowPassword(!showPassword)}
                     edge="end"
-                    sx={{ color: "rgba(255,255,255,0.7)" }}
+                    sx={{ color: "rgba(255,255,255,0.7)", p: { xs: 1, sm: 1.5 } }}
                   >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                    {showPassword ? (
+                      <VisibilityOff sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                    ) : (
+                      <Visibility sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                    )}
                   </IconButton>
                 </InputAdornment>
               ),
@@ -295,8 +327,14 @@ const Register = () => {
             {loading ? "Creating Account..." : "Sign Up"}
           </GradientButton>
 
-          <Box display="flex" justifyContent="center" mt={3}>
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)" }}>
+          <Box display="flex" justifyContent="center" mt={{ xs: 2.5, sm: 3 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "rgba(255,255,255,0.6)",
+                fontSize: { xs: "0.85rem", sm: "0.875rem" }
+              }}
+            >
               Already have an account?{" "}
               <Link
                 onClick={() => navigate("/login")}
@@ -306,6 +344,7 @@ const Register = () => {
                   fontWeight: "bold",
                   cursor: "pointer",
                   transition: "0.2s",
+                  fontSize: { xs: "0.85rem", sm: "0.875rem" },
                   "&:hover": { color: "#fff", textShadow: "0 0 10px #a8c0ff" },
                 }}
               >
