@@ -2,9 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const { resolve } = require("path");
 const cors = require("cors");
-const connectDB = require("./config/database"); // Import the function
+const connectDB = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const conversationRoutes = require("./routes/conversationRoutes");
 
 const app = express();
 const port = process.env.PORT || 3010;
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/conversations", conversationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

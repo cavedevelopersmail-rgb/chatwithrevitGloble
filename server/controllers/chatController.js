@@ -1,4 +1,5 @@
 const Chat = require("../models/Chat");
+const Conversation = require("../models/Conversation");
 const OpenAI = require("openai");
 
 // 1. Import OpenAI Agents SDK
@@ -137,10 +138,16 @@ Positive Reinforcement: Instead of a list of "DO NOTs," I provided "Example Inte
 });
 
 // Helper function to run the workflow
-async function runWorkflow(inputText) {
-  const conversationHistory = [
-    { role: "user", content: [{ type: "input_text", text: inputText }] },
-  ];
+async function runWorkflow(inputText, previousMessages = []) {
+  const conversationHistory = previousMessages.map(msg => ({
+    role: msg.role,
+    content: [{ type: "input_text", text: msg.content }]
+  }));
+
+  conversationHistory.push({
+    role: "user",
+    content: [{ type: "input_text", text: inputText }]
+  });
 
   const runner = new Runner({
     traceMetadata: {
@@ -167,7 +174,7 @@ async function runWorkflow(inputText) {
 // 3. Updated sendMessage Controller
 exports.sendMessage = async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, conversationId } = req.body;
     const userId = req.userId;
 
     if (!message) {
@@ -179,13 +186,45 @@ exports.sendMessage = async (req, res) => {
       return res.status(500).json({ error: "OpenAI API Key not configured" });
     }
 
+    let currentConversationId = conversationId;
+
+    if (!currentConversationId) {
+      const newConversation = new Conversation({
+        userId,
+        title: message.substring(0, 50)
+      });
+      await newConversation.save();
+      currentConversationId = newConversation._id;
+    } else {
+      const conversation = await Conversation.findOne({
+        _id: currentConversationId,
+        userId
+      });
+
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      conversation.updatedAt = new Date();
+      await conversation.save();
+    }
+
+    const previousChats = await Chat.find({ conversationId: currentConversationId })
+      .sort({ timestamp: 1 })
+      .limit(10);
+
+    const previousMessages = [];
+    previousChats.forEach(chat => {
+      previousMessages.push({ role: "user", content: chat.message });
+      previousMessages.push({ role: "assistant", content: chat.response });
+    });
+
     let responseMessage;
     let modelName = "compliance-house-agent";
 
     try {
-      // EXECUTE THE AGENT WORKFLOW HERE
       console.log("Running Compliance House Agent...");
-      const agentResult = await runWorkflow(message);
+      const agentResult = await runWorkflow(message, previousMessages);
       responseMessage = agentResult.output_text;
     } catch (apiError) {
       console.error("Agent Workflow Error:", apiError);
@@ -195,14 +234,14 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    // Save to Database
     const chat = new Chat({
+      conversationId: currentConversationId,
       userId,
       message,
       response: responseMessage,
       metadata: {
         model: modelName,
-        tokens: 0, // Agents API token counting is complex, defaulting to 0 or leave empty
+        tokens: 0,
       },
     });
 
@@ -211,6 +250,7 @@ exports.sendMessage = async (req, res) => {
     res.json({
       message: responseMessage,
       chatId: chat._id,
+      conversationId: currentConversationId,
       tokens: 0,
     });
   } catch (error) {
@@ -219,18 +259,30 @@ exports.sendMessage = async (req, res) => {
   }
 };
 
-// 4. Existing History Functions (Unchanged)
 exports.getChatHistory = async (req, res) => {
   try {
     const userId = req.userId;
-    const { limit = 50, skip = 0 } = req.query;
+    const { conversationId, limit = 50, skip = 0 } = req.query;
 
-    const chats = await Chat.find({ userId })
-      .sort({ timestamp: -1 })
+    if (!conversationId) {
+      return res.status(400).json({ error: "Conversation ID is required" });
+    }
+
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      userId
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    const chats = await Chat.find({ conversationId })
+      .sort({ timestamp: 1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip));
 
-    const total = await Chat.countDocuments({ userId });
+    const total = await Chat.countDocuments({ conversationId });
 
     res.json({
       chats,
@@ -266,9 +318,65 @@ exports.clearChatHistory = async (req, res) => {
   try {
     const userId = req.userId;
     await Chat.deleteMany({ userId });
+    await Conversation.deleteMany({ userId });
     res.json({ message: "Chat history cleared successfully" });
   } catch (error) {
     console.error("Clear chat history error:", error);
     res.status(500).json({ error: "Failed to clear chat history" });
+  }
+};
+
+exports.regenerateResponse = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.userId;
+
+    const chat = await Chat.findOne({ _id: chatId, userId });
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    const previousChats = await Chat.find({
+      conversationId: chat.conversationId,
+      timestamp: { $lt: chat.timestamp }
+    })
+      .sort({ timestamp: 1 })
+      .limit(10);
+
+    const previousMessages = [];
+    previousChats.forEach(c => {
+      previousMessages.push({ role: "user", content: c.message });
+      previousMessages.push({ role: "assistant", content: c.response });
+    });
+
+    let responseMessage;
+
+    try {
+      const agentResult = await runWorkflow(chat.message, previousMessages);
+      responseMessage = agentResult.output_text;
+    } catch (apiError) {
+      console.error("Agent Workflow Error:", apiError);
+      return res.status(500).json({
+        error: "Failed to regenerate response",
+        details: apiError.message,
+      });
+    }
+
+    chat.response = responseMessage;
+    chat.timestamp = new Date();
+    await chat.save();
+
+    await Conversation.findByIdAndUpdate(chat.conversationId, {
+      updatedAt: new Date()
+    });
+
+    res.json({
+      message: responseMessage,
+      chatId: chat._id,
+    });
+  } catch (error) {
+    console.error("Regenerate response error:", error);
+    res.status(500).json({ error: "Failed to regenerate response" });
   }
 };

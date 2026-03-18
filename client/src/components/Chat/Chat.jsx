@@ -19,6 +19,13 @@ import {
   useTheme,
   useMediaQuery,
   Paper,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  ListItemButton,
 } from "@mui/material";
 import {
   Send,
@@ -30,11 +37,17 @@ import {
   DeleteForever,
   SmartToy,
   ContentCopy,
+  Add,
+  Edit as EditIcon,
+  Delete,
+  Refresh,
+  Check,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { styled } from "@mui/material/styles";
 import authService from "../../services/authService";
 import chatService from "../../services/chatService";
+import conversationService from "../../services/conversationService";
 import rivetLogo from "../../assets/rivetGlobalpng.png";
 
 // --- STYLED COMPONENTS FOR "OSM" AESTHETIC ---
@@ -112,9 +125,18 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState("");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isTyping, setIsTyping] = useState(false); // State for animation
+  const [isTyping, setIsTyping] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [editingConvId, setEditingConvId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState(null);
+  const [messageMenuAnchor, setMessageMenuAnchor] = useState(null);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
 
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
@@ -131,8 +153,16 @@ const Chat = () => {
         }
         const userData = await authService.getProfile();
         setUser(userData);
-        const chatHistory = await chatService.getChatHistory();
-        setMessages(chatHistory.chats || []);
+
+        const convData = await conversationService.getConversations();
+        setConversations(convData.conversations || []);
+
+        if (convData.conversations && convData.conversations.length > 0) {
+          const firstConv = convData.conversations[0];
+          setCurrentConversationId(firstConv._id);
+          const chatHistory = await chatService.getChatHistory(firstConv._id);
+          setMessages(chatHistory.chats || []);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         navigate("/login");
@@ -158,38 +188,127 @@ const Chat = () => {
     const tempMessage = newMessage;
     setNewMessage("");
 
-    // Optimistic UI: Add user message immediately
     const tempUserMsg = {
-      _id: Date.now().toString(), // Temporary ID
+      _id: Date.now().toString(),
       message: tempMessage,
       timestamp: new Date().toISOString(),
-      sender: "user", // Flag to identify locally
+      sender: "user",
     };
 
     setMessages((prev) => [...prev, tempUserMsg]);
-    setIsTyping(true); // Start typing animation
+    setIsTyping(true);
 
     try {
-      const response = await chatService.sendMessage(tempMessage);
+      const response = await chatService.sendMessage(tempMessage, currentConversationId);
 
       const newChat = {
         _id: response.chatId,
+        conversationId: response.conversationId,
         userId: user._id,
         message: tempMessage,
         response: response.message,
         timestamp: new Date().toISOString(),
-        metadata: { model: "gpt-3.5-turbo", tokens: response.tokens },
+        metadata: { model: "compliance-house-agent", tokens: response.tokens },
       };
 
-      // Replace the temp message and add response
+      if (!currentConversationId) {
+        setCurrentConversationId(response.conversationId);
+        const convData = await conversationService.getConversations();
+        setConversations(convData.conversations || []);
+      }
+
       setMessages((prev) => {
         const filtered = prev.filter((msg) => msg._id !== tempUserMsg._id);
         return [...filtered, newChat];
       });
     } catch (error) {
       console.error("Error sending message:", error);
+      setMessages((prev) => prev.filter((msg) => msg._id !== tempUserMsg._id));
     } finally {
-      setIsTyping(false); // Stop typing animation
+      setIsTyping(false);
+    }
+  };
+
+  const handleNewConversation = async () => {
+    try {
+      const newConv = await conversationService.createConversation("New Conversation");
+      setConversations((prev) => [newConv.conversation, ...prev]);
+      setCurrentConversationId(newConv.conversation._id);
+      setMessages([]);
+      setDrawerOpen(false);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+    }
+  };
+
+  const handleSelectConversation = async (convId) => {
+    try {
+      setCurrentConversationId(convId);
+      const chatHistory = await chatService.getChatHistory(convId);
+      setMessages(chatHistory.chats || []);
+      setDrawerOpen(false);
+    } catch (error) {
+      console.error("Error loading conversation:", error);
+    }
+  };
+
+  const handleCopyMessage = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(text);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleRegenerateResponse = async (chatId) => {
+    try {
+      setIsTyping(true);
+      const response = await chatService.regenerateResponse(chatId);
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === chatId ? { ...msg, response: response.message } : msg
+        )
+      );
+    } catch (error) {
+      console.error("Error regenerating response:", error);
+    } finally {
+      setIsTyping(false);
+      setMessageMenuAnchor(null);
+    }
+  };
+
+  const handleEditConversationTitle = async (convId) => {
+    if (!editTitle.trim()) return;
+
+    try {
+      await conversationService.updateConversationTitle(convId, editTitle);
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv._id === convId ? { ...conv, title: editTitle } : conv
+        )
+      );
+      setEditingConvId(null);
+      setEditTitle("");
+    } catch (error) {
+      console.error("Error updating title:", error);
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+
+    try {
+      await conversationService.deleteConversation(conversationToDelete);
+      setConversations((prev) => prev.filter((c) => c._id !== conversationToDelete));
+
+      if (currentConversationId === conversationToDelete) {
+        setCurrentConversationId(null);
+        setMessages([]);
+      }
+
+      setDeleteDialogOpen(false);
+      setConversationToDelete(null);
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
     }
   };
 
@@ -199,9 +318,15 @@ const Chat = () => {
   };
 
   const handleClearHistory = async () => {
-    await chatService.clearChatHistory();
-    setMessages([]);
-    setDrawerOpen(false);
+    try {
+      await chatService.clearChatHistory();
+      setMessages([]);
+      setConversations([]);
+      setCurrentConversationId(null);
+      setDrawerOpen(false);
+    } catch (error) {
+      console.error("Error clearing history:", error);
+    }
   };
 
   if (loading)
@@ -222,7 +347,7 @@ const Chat = () => {
 
   return (
     <GradientBackground>
-      {/* --- SIDEBAR DRAWER (Glassmorphism) --- */}
+      {/* --- SIDEBAR DRAWER --- */}
       <Drawer
         anchor="left"
         open={drawerOpen}
@@ -232,14 +357,14 @@ const Chat = () => {
             background: "rgba(15, 12, 41, 0.95)",
             backdropFilter: "blur(20px)",
             color: "white",
-            width: 280,
+            width: 320,
             borderRight: "1px solid rgba(255,255,255,0.1)",
           },
         }}
       >
         <Box
           sx={{
-            p: 3,
+            p: 2,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -263,6 +388,124 @@ const Chat = () => {
             <Close />
           </IconButton>
         </Box>
+
+        <Box sx={{ px: 2, pb: 2 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<Add />}
+            onClick={handleNewConversation}
+            sx={{
+              borderColor: "rgba(255,255,255,0.2)",
+              color: "white",
+              "&:hover": {
+                borderColor: "#00e676",
+                bgcolor: "rgba(0,230,118,0.1)",
+              },
+            }}
+          >
+            New Conversation
+          </Button>
+        </Box>
+
+        <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
+
+        <Box sx={{ flex: 1, overflowY: "auto", px: 1 }}>
+          <Typography
+            variant="caption"
+            sx={{ px: 2, py: 1, display: "block", color: "rgba(255,255,255,0.5)" }}
+          >
+            Recent Conversations
+          </Typography>
+          <List dense>
+            {conversations.map((conv) => (
+              <ListItem
+                key={conv._id}
+                disablePadding
+                sx={{
+                  mb: 0.5,
+                  borderRadius: "8px",
+                  bgcolor:
+                    currentConversationId === conv._id
+                      ? "rgba(0,230,118,0.15)"
+                      : "transparent",
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
+                }}
+              >
+                <ListItemButton
+                  onClick={() => handleSelectConversation(conv._id)}
+                  sx={{ borderRadius: "8px" }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <ChatIcon sx={{ fontSize: 18, color: "#a8c0ff" }} />
+                  </ListItemIcon>
+                  {editingConvId === conv._id ? (
+                    <TextField
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      onBlur={() => handleEditConversationTitle(conv._id)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleEditConversationTitle(conv._id);
+                        }
+                      }}
+                      variant="standard"
+                      size="small"
+                      autoFocus
+                      InputProps={{
+                        style: { color: "white", fontSize: "0.875rem" },
+                      }}
+                    />
+                  ) : (
+                    <ListItemText
+                      primary={conv.title}
+                      secondary={conv.preview}
+                      primaryTypographyProps={{
+                        fontSize: "0.875rem",
+                        fontWeight: currentConversationId === conv._id ? 600 : 400,
+                        noWrap: true,
+                      }}
+                      secondaryTypographyProps={{
+                        fontSize: "0.75rem",
+                        noWrap: true,
+                        sx: { color: "rgba(255,255,255,0.4)" },
+                      }}
+                    />
+                  )}
+                  <Box sx={{ display: "flex", gap: 0.5 }}>
+                    <Tooltip title="Rename">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingConvId(conv._id);
+                          setEditTitle(conv.title);
+                        }}
+                        sx={{ color: "rgba(255,255,255,0.5)" }}
+                      >
+                        <EditIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConversationToDelete(conv._id);
+                          setDeleteDialogOpen(true);
+                        }}
+                        sx={{ color: "rgba(255,255,255,0.5)" }}
+                      >
+                        <Delete sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+
         <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
         <List>
           <ListItem
@@ -273,10 +516,41 @@ const Chat = () => {
             <ListItemIcon sx={{ color: "#ff6b6b" }}>
               <DeleteForever />
             </ListItemIcon>
-            <ListItemText primary="Clear Memory" />
+            <ListItemText primary="Clear All History" />
           </ListItem>
         </List>
       </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            bgcolor: "#24243e",
+            color: "white",
+            border: "1px solid rgba(255,255,255,0.1)",
+          },
+        }}
+      >
+        <DialogTitle>Delete Conversation?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will permanently delete this conversation and all its messages.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            sx={{ color: "rgba(255,255,255,0.7)" }}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConversation} sx={{ color: "#ff6b6b" }}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* --- MAIN CONTENT --- */}
       <Box
@@ -445,48 +719,81 @@ const Chat = () => {
                     sx={{
                       alignSelf: "flex-start",
                       display: "flex",
-                      gap: 1,
+                      flexDirection: "column",
+                      gap: 0.5,
                       maxWidth: "90%",
                     }}
                   >
-                    <Avatar
-                      sx={{
-                        width: 28,
-                        height: 28,
-                        bgcolor: "rgba(255,255,255,0.1)",
-                        mt: 1,
-                      }}
-                      src={rivetLogo}
-                      alt="Rivet Global"
-                    />
-                    <MessageBubble
-                      isUser={false}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: 0.1 }}
-                    >
-                      <Typography
-                        variant="body1"
-                        sx={{ whiteSpace: "pre-line" }}
-                      >
-                        {msg.response}
-                      </Typography>
-                      <Typography
-                        variant="caption"
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Avatar
                         sx={{
-                          display: "block",
+                          width: 28,
+                          height: 28,
+                          bgcolor: "rgba(255,255,255,0.1)",
                           mt: 1,
-                          opacity: 0.5,
-                          fontSize: "0.7rem",
                         }}
+                        src={rivetLogo}
+                        alt="Rivet Global"
+                      />
+                      <MessageBubble
+                        isUser={false}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: 0.1 }}
                       >
-                        AI Assistant •{" "}
-                        {new Date(msg.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Typography>
-                    </MessageBubble>
+                        <Typography
+                          variant="body1"
+                          sx={{ whiteSpace: "pre-line" }}
+                        >
+                          {msg.response}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: "block",
+                            mt: 1,
+                            opacity: 0.5,
+                            fontSize: "0.7rem",
+                          }}
+                        >
+                          AI Assistant •{" "}
+                          {new Date(msg.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Typography>
+                      </MessageBubble>
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 0.5, ml: 5 }}>
+                      <Tooltip title={copiedId === msg.response ? "Copied!" : "Copy"}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleCopyMessage(msg.response)}
+                          sx={{
+                            color: "rgba(255,255,255,0.5)",
+                            "&:hover": { color: "#00e676" },
+                          }}
+                        >
+                          {copiedId === msg.response ? (
+                            <Check sx={{ fontSize: 16 }} />
+                          ) : (
+                            <ContentCopy sx={{ fontSize: 16 }} />
+                          )}
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Regenerate">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleRegenerateResponse(msg._id)}
+                          sx={{
+                            color: "rgba(255,255,255,0.5)",
+                            "&:hover": { color: "#00e676" },
+                          }}
+                        >
+                          <Refresh sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   </Box>
                 )}
               </React.Fragment>
