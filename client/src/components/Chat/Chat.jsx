@@ -52,13 +52,17 @@ import rivetLogo from "../../assets/rivetGlobalpng.png";
 
 // --- STYLED COMPONENTS FOR "OSM" AESTHETIC ---
 
-const GradientBackground = styled(Box)({
+const GradientBackground = styled(Box)(({ theme }) => ({
   background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
   height: "100vh",
+  width: "100vw",
   display: "flex",
   overflow: "hidden",
   position: "relative",
-});
+  [theme.breakpoints.down('sm')]: {
+    height: "100dvh",
+  },
+}));
 
 const GlassPaper = styled(Paper)(({ theme }) => ({
   background: "rgba(255, 255, 255, 0.05)",
@@ -68,22 +72,30 @@ const GlassPaper = styled(Paper)(({ theme }) => ({
   color: "white",
 }));
 
-const MessageBubble = styled(motion.div)(({ isUser }) => ({
+const MessageBubble = styled(motion.div)(({ isUser, theme }) => ({
   padding: "12px 18px",
   borderRadius: isUser ? "20px 20px 0px 20px" : "20px 20px 20px 0px",
   background: isUser
-    ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" // User: Purple Gradient
-    : "rgba(255, 255, 255, 0.1)", // AI: Glass effect
+    ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+    : "rgba(255, 255, 255, 0.1)",
   backdropFilter: isUser ? "none" : "blur(5px)",
   color: "#fff",
   maxWidth: "80%",
+  width: "fit-content",
   position: "relative",
   boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
   marginBottom: "8px",
   border: isUser ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
+  wordBreak: "break-word",
+  overflowWrap: "break-word",
+  [theme.breakpoints.down('sm')]: {
+    maxWidth: "85%",
+    padding: "10px 14px",
+    fontSize: "0.9rem",
+  },
 }));
 
-const InputArea = styled(Box)({
+const InputArea = styled(Box)(({ theme }) => ({
   padding: "20px",
   background: "rgba(0, 0, 0, 0.3)",
   backdropFilter: "blur(10px)",
@@ -91,7 +103,11 @@ const InputArea = styled(Box)({
   display: "flex",
   alignItems: "center",
   gap: "10px",
-});
+  [theme.breakpoints.down('sm')]: {
+    padding: "12px",
+    gap: "8px",
+  },
+}));
 
 // --- TYPING INDICATOR COMPONENT ---
 const TypingIndicator = () => (
@@ -357,7 +373,8 @@ const Chat = () => {
             background: "rgba(15, 12, 41, 0.95)",
             backdropFilter: "blur(20px)",
             color: "white",
-            width: 320,
+            width: { xs: "85vw", sm: 320 },
+            maxWidth: 320,
             borderRight: "1px solid rgba(255,255,255,0.1)",
           },
         }}
@@ -455,24 +472,26 @@ const Chat = () => {
                       InputProps={{
                         style: { color: "white", fontSize: "0.875rem" },
                       }}
+                      sx={{ flex: 1 }}
                     />
                   ) : (
                     <ListItemText
                       primary={conv.title}
                       secondary={conv.preview}
                       primaryTypographyProps={{
-                        fontSize: "0.875rem",
+                        fontSize: { xs: "0.8rem", sm: "0.875rem" },
                         fontWeight: currentConversationId === conv._id ? 600 : 400,
                         noWrap: true,
                       }}
                       secondaryTypographyProps={{
-                        fontSize: "0.75rem",
+                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                         noWrap: true,
                         sx: { color: "rgba(255,255,255,0.4)" },
                       }}
+                      sx={{ flex: 1, minWidth: 0 }}
                     />
                   )}
-                  <Box sx={{ display: "flex", gap: 0.5 }}>
+                  <Box sx={{ display: "flex", gap: 0.25, flexShrink: 0 }}>
                     <Tooltip title="Rename">
                       <IconButton
                         size="small"
@@ -481,9 +500,12 @@ const Chat = () => {
                           setEditingConvId(conv._id);
                           setEditTitle(conv.title);
                         }}
-                        sx={{ color: "rgba(255,255,255,0.5)" }}
+                        sx={{
+                          color: "rgba(255,255,255,0.5)",
+                          p: { xs: 0.5, sm: 1 }
+                        }}
                       >
-                        <EditIcon sx={{ fontSize: 16 }} />
+                        <EditIcon sx={{ fontSize: { xs: 14, sm: 16 } }} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
@@ -494,9 +516,12 @@ const Chat = () => {
                           setConversationToDelete(conv._id);
                           setDeleteDialogOpen(true);
                         }}
-                        sx={{ color: "rgba(255,255,255,0.5)" }}
+                        sx={{
+                          color: "rgba(255,255,255,0.5)",
+                          p: { xs: 0.5, sm: 1 }
+                        }}
                       >
-                        <Delete sx={{ fontSize: 16 }} />
+                        <Delete sx={{ fontSize: { xs: 14, sm: 16 } }} />
                       </IconButton>
                     </Tooltip>
                   </Box>
@@ -591,7 +616,11 @@ const Chat = () => {
               alt="Rivet Global"
             />
             <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="subtitle1" fontWeight="bold">
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                sx={{ fontSize: { xs: "0.95rem", sm: "1rem" } }}
+              >
                 Rivet Agent
               </Typography>
               <Box display="flex" alignItems="center" gap={0.5}>
@@ -606,7 +635,10 @@ const Chat = () => {
                 />
                 <Typography
                   variant="caption"
-                  sx={{ color: "rgba(255,255,255,0.6)" }}
+                  sx={{
+                    color: "rgba(255,255,255,0.6)",
+                    fontSize: { xs: "0.7rem", sm: "0.75rem" }
+                  }}
                 >
                   Online
                 </Typography>
@@ -644,7 +676,7 @@ const Chat = () => {
           sx={{
             flex: 1,
             overflowY: "auto",
-            p: 3,
+            p: { xs: 2, sm: 3 },
             display: "flex",
             flexDirection: "column",
             gap: 2,
@@ -665,12 +697,23 @@ const Chat = () => {
                 justifyContent: "center",
                 alignItems: "center",
                 opacity: 0.7,
+                px: 2,
               }}
             >
               <SmartToy
-                sx={{ fontSize: 60, color: "rgba(255,255,255,0.2)", mb: 2 }}
+                sx={{
+                  fontSize: { xs: 50, sm: 60 },
+                  color: "rgba(255,255,255,0.2)",
+                  mb: 2
+                }}
               />
-              <Typography color="rgba(255,255,255,0.5)">
+              <Typography
+                color="rgba(255,255,255,0.5)"
+                sx={{
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
+                  textAlign: "center"
+                }}
+              >
                 How can I help you with Healthcare today?
               </Typography>
             </Box>
@@ -721,16 +764,18 @@ const Chat = () => {
                       display: "flex",
                       flexDirection: "column",
                       gap: 0.5,
-                      maxWidth: "90%",
+                      maxWidth: { xs: "95%", sm: "90%" },
+                      width: "100%",
                     }}
                   >
-                    <Box sx={{ display: "flex", gap: 1 }}>
+                    <Box sx={{ display: "flex", gap: { xs: 0.5, sm: 1 } }}>
                       <Avatar
                         sx={{
-                          width: 28,
-                          height: 28,
+                          width: { xs: 24, sm: 28 },
+                          height: { xs: 24, sm: 28 },
                           bgcolor: "rgba(255,255,255,0.1)",
                           mt: 1,
+                          flexShrink: 0,
                         }}
                         src={rivetLogo}
                         alt="Rivet Global"
@@ -764,7 +809,7 @@ const Chat = () => {
                         </Typography>
                       </MessageBubble>
                     </Box>
-                    <Box sx={{ display: "flex", gap: 0.5, ml: 5 }}>
+                    <Box sx={{ display: "flex", gap: 0.5, ml: { xs: 3.5, sm: 5 } }}>
                       <Tooltip title={copiedId === msg.response ? "Copied!" : "Copy"}>
                         <IconButton
                           size="small"
@@ -772,12 +817,13 @@ const Chat = () => {
                           sx={{
                             color: "rgba(255,255,255,0.5)",
                             "&:hover": { color: "#00e676" },
+                            p: { xs: 0.5, sm: 1 },
                           }}
                         >
                           {copiedId === msg.response ? (
-                            <Check sx={{ fontSize: 16 }} />
+                            <Check sx={{ fontSize: { xs: 14, sm: 16 } }} />
                           ) : (
-                            <ContentCopy sx={{ fontSize: 16 }} />
+                            <ContentCopy sx={{ fontSize: { xs: 14, sm: 16 } }} />
                           )}
                         </IconButton>
                       </Tooltip>
@@ -788,9 +834,10 @@ const Chat = () => {
                           sx={{
                             color: "rgba(255,255,255,0.5)",
                             "&:hover": { color: "#00e676" },
+                            p: { xs: 0.5, sm: 1 },
                           }}
                         >
-                          <Refresh sx={{ fontSize: 16 }} />
+                          <Refresh sx={{ fontSize: { xs: 14, sm: 16 } }} />
                         </IconButton>
                       </Tooltip>
                     </Box>
@@ -802,19 +849,24 @@ const Chat = () => {
 
           {/* TYPING ANIMATION BUBBLE */}
           {isTyping && (
-            <Box sx={{ alignSelf: "flex-start", display: "flex", gap: 1 }}>
+            <Box sx={{ alignSelf: "flex-start", display: "flex", gap: { xs: 0.5, sm: 1 } }}>
               <Avatar
-                sx={{ width: 28, height: 28, bgcolor: "rgba(255,255,255,0.1)" }}
+                sx={{
+                  width: { xs: 24, sm: 28 },
+                  height: { xs: 24, sm: 28 },
+                  bgcolor: "rgba(255,255,255,0.1)",
+                  flexShrink: 0,
+                }}
                 src={rivetLogo}
                 alt="Rivet Global"
               />
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.1)",
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.1)",
                   borderRadius: "20px",
-                  p: 1,
+                  padding: "4px",
                 }}
               >
                 <GlassPaper sx={{ borderRadius: "20px 20px 20px 5px", px: 1 }}>
@@ -832,7 +884,7 @@ const Chat = () => {
             component="form"
             onSubmit={handleSendMessage}
             sx={{
-              p: "4px 15px",
+              p: { xs: "4px 10px", sm: "4px 15px" },
               display: "flex",
               alignItems: "center",
               width: "100%",
@@ -849,28 +901,44 @@ const Chat = () => {
             <TextField
               fullWidth
               placeholder="Ask anything..."
+              multiline
+              maxRows={4}
               variant="standard"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              InputProps={{ disableUnderline: true, style: { color: "white" } }}
-              sx={{ ml: 1, flex: 1 }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e);
+                }
+              }}
+              InputProps={{
+                disableUnderline: true,
+                style: {
+                  color: "white",
+                  fontSize: window.innerWidth < 600 ? "0.95rem" : "1rem",
+                }
+              }}
+              sx={{ ml: { xs: 0.5, sm: 1 }, flex: 1 }}
             />
-            {/* --- UPDATED SEND BUTTON BELOW --- */}
             <IconButton
               type="submit"
               disabled={!newMessage.trim() || isTyping}
               sx={{
-                // CHANGED: Purple (#667eea) -> Green (#00e676)
                 bgcolor: newMessage.trim()
                   ? "#00e676"
                   : "rgba(255,255,255,0.1)",
                 color: "white",
                 transition: "0.2s",
-                // CHANGED: Hover Purple (#764ba2) -> Darker Green (#00a152)
+                p: { xs: 1, sm: 1.2 },
                 "&:hover": { bgcolor: "#00a152", transform: "scale(1.1)" },
+                "&:disabled": {
+                  bgcolor: "rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.3)",
+                }
               }}
             >
-              <Send fontSize="small" />
+              <Send sx={{ fontSize: { xs: 18, sm: 20 } }} />
             </IconButton>
           </GlassPaper>
         </InputArea>
