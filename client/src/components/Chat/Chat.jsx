@@ -1,109 +1,96 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box,
-  Typography,
   TextField,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
   Avatar,
   Menu,
   MenuItem,
-  Drawer,
-  ListItemIcon,
-  useTheme,
-  useMediaQuery,
   Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  ListItemButton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Send,
-  Menu as MenuIcon,
   Logout,
-  Chat as ChatIcon,
-  Close,
-  DeleteForever,
   ContentCopy,
   Add,
   Edit as EditIcon,
   Delete,
   Refresh,
   Check,
+  Menu as MenuIcon,
+  Close,
+  DeleteForever,
+  Chat as ChatBubbleIcon,
+  BarChart,
+  Assignment,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
-import { styled } from "@mui/material/styles";
 import authService from "../../services/authService";
 import chatService from "../../services/chatService";
 import conversationService from "../../services/conversationService";
 import rivetLogo from "../../assets/rivetGlobalpng.png";
 
-const NEON = "#00ff88";
-const font = "'Space Grotesk', sans-serif";
+const C = {
+  bg: "#0c1117",
+  sidebar: "#111827",
+  surface: "#131929",
+  card: "#1a2234",
+  cardHover: "#1f2a40",
+  border: "#1e2d45",
+  accent: "#5b8dee",
+  accentDim: "rgba(91,141,238,0.12)",
+  accentText: "#93c5fd",
+  text: "#f1f5f9",
+  muted: "#64748b",
+  mutedLight: "#94a3b8",
+  error: "#f87171",
+  userBubble: "#1e3a6e",
+  userBubbleBorder: "#2563eb",
+  aiBubble: "#131929",
+  aiBubbleBorder: "#1e2d45",
+};
 
-// ── STYLED COMPONENTS ──
+const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-const ObsidianRoot = styled(Box)(() => ({
-  background: "#000",
-  height: "100vh",
-  width: "100vw",
-  display: "flex",
-  overflow: "hidden",
-  position: "fixed",
-  top: 0, left: 0, right: 0, bottom: 0,
-  fontFamily: font,
-  color: "white",
-}));
+const NAV_ITEMS = [
+  { icon: <ChatBubbleIcon sx={{ fontSize: 18 }} />, label: "Conversations", id: "chat" },
+  { icon: <BarChart sx={{ fontSize: 18 }} />, label: "Analytics", id: "analytics", soon: true },
+  { icon: <Assignment sx={{ fontSize: 18 }} />, label: "Compliance", id: "compliance", soon: true },
+];
 
-const UserBubble = styled(motion.div)(() => ({
-  padding: "10px 16px",
-  backgroundColor: NEON,
-  color: "#000",
-  fontWeight: 500,
-  maxWidth: "78%",
-  width: "fit-content",
-  wordBreak: "break-word",
-  overflowWrap: "break-word",
-  fontSize: "0.95rem",
-  lineHeight: 1.5,
-}));
-
-const AIBubble = styled(motion.div)(() => ({
-  padding: "10px 16px",
-  backgroundColor: "#0d0d0d",
-  border: "1px solid rgba(0,255,136,0.15)",
-  color: "#e5e5e5",
-  maxWidth: "82%",
-  width: "fit-content",
-  wordBreak: "break-word",
-  overflowWrap: "break-word",
-  fontSize: "0.95rem",
-  lineHeight: 1.6,
-}));
-
-// ── TYPING INDICATOR ──
 const TypingIndicator = () => (
-  <Box sx={{ display: "flex", gap: "5px", alignItems: "center", p: "6px 4px" }}>
-    <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: NEON, boxShadow: `0 0 4px ${NEON}` }} />
-    {[0, 1, 2].map((dot) => (
+  <div style={{ display: "flex", gap: "4px", alignItems: "center", padding: "4px 0" }}>
+    {[0, 1, 2].map((i) => (
       <motion.div
-        key={dot}
-        style={{ width: 6, height: 6, backgroundColor: NEON, borderRadius: "50%", opacity: 0.6 }}
-        animate={{ y: [0, -6, 0] }}
-        transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut", delay: dot * 0.15 }}
+        key={i}
+        style={{ width: 6, height: 6, backgroundColor: C.accent, borderRadius: "50%", opacity: 0.7 }}
+        animate={{ y: [0, -5, 0] }}
+        transition={{ duration: 0.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.15 }}
       />
     ))}
-  </Box>
+  </div>
 );
 
-// ── MAIN COMPONENT ──
+const StatCard = ({ label, value }) => (
+  <div style={{
+    backgroundColor: C.card,
+    border: `1px solid ${C.border}`,
+    borderRadius: "10px",
+    padding: "14px 18px",
+    flex: 1,
+    minWidth: 0,
+  }}>
+    <div style={{ color: C.text, fontWeight: 700, fontSize: "1.4rem", lineHeight: 1 }}>{value}</div>
+    <div style={{ color: C.muted, fontSize: "0.75rem", marginTop: "4px" }}>{label}</div>
+  </div>
+);
+
 const Chat = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -111,7 +98,7 @@ const Chat = () => {
   const [loading, setLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -123,7 +110,7 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -140,8 +127,7 @@ const Chat = () => {
           const chatHistory = await chatService.getChatHistory(firstConv._id);
           setMessages(chatHistory.chats || []);
         }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+      } catch {
         navigate("/login");
       } finally {
         setLoading(false);
@@ -174,10 +160,9 @@ const Chat = () => {
         const convData = await conversationService.getConversations();
         setConversations(convData.conversations || []);
       }
-      setMessages((prev) => [...prev.filter((msg) => msg._id !== tempUserMsg._id), newChat]);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setMessages((prev) => prev.filter((msg) => msg._id !== tempUserMsg._id));
+      setMessages((prev) => [...prev.filter((m) => m._id !== tempUserMsg._id), newChat]);
+    } catch {
+      setMessages((prev) => prev.filter((m) => m._id !== tempUserMsg._id));
     } finally {
       setIsTyping(false);
     }
@@ -189,8 +174,7 @@ const Chat = () => {
       setConversations((prev) => [newConv.conversation, ...prev]);
       setCurrentConversationId(newConv.conversation._id);
       setMessages([]);
-      setDrawerOpen(false);
-    } catch (error) { console.error("Error creating conversation:", error); }
+    } catch { /* ignore */ }
   };
 
   const handleSelectConversation = async (convId) => {
@@ -198,8 +182,8 @@ const Chat = () => {
       setCurrentConversationId(convId);
       const chatHistory = await chatService.getChatHistory(convId);
       setMessages(chatHistory.chats || []);
-      setDrawerOpen(false);
-    } catch (error) { console.error("Error loading conversation:", error); }
+      if (isMobile) setSidebarOpen(false);
+    } catch { /* ignore */ }
   };
 
   const handleCopyMessage = (text) => {
@@ -212,8 +196,8 @@ const Chat = () => {
     try {
       setIsTyping(true);
       const response = await chatService.regenerateResponse(chatId);
-      setMessages((prev) => prev.map((msg) => msg._id === chatId ? { ...msg, response: response.message } : msg));
-    } catch (error) { console.error("Error regenerating response:", error); }
+      setMessages((prev) => prev.map((m) => m._id === chatId ? { ...m, response: response.message } : m));
+    } catch { /* ignore */ }
     finally { setIsTyping(false); }
   };
 
@@ -221,9 +205,9 @@ const Chat = () => {
     if (!editTitle.trim()) return;
     try {
       await conversationService.updateConversationTitle(convId, editTitle);
-      setConversations((prev) => prev.map((conv) => conv._id === convId ? { ...conv, title: editTitle } : conv));
+      setConversations((prev) => prev.map((c) => c._id === convId ? { ...c, title: editTitle } : c));
       setEditingConvId(null); setEditTitle("");
-    } catch (error) { console.error("Error updating title:", error); }
+    } catch { /* ignore */ }
   };
 
   const handleDeleteConversation = async () => {
@@ -233,352 +217,468 @@ const Chat = () => {
       setConversations((prev) => prev.filter((c) => c._id !== conversationToDelete));
       if (currentConversationId === conversationToDelete) { setCurrentConversationId(null); setMessages([]); }
       setDeleteDialogOpen(false); setConversationToDelete(null);
-    } catch (error) { console.error("Error deleting conversation:", error); }
+    } catch { /* ignore */ }
   };
-
-  const handleLogout = async () => { await authService.logout(); navigate("/login"); };
 
   const handleClearHistory = async () => {
     try {
       await chatService.clearChatHistory();
-      setMessages([]); setConversations([]); setCurrentConversationId(null); setDrawerOpen(false);
-    } catch (error) { console.error("Error clearing history:", error); }
+      setMessages([]); setConversations([]); setCurrentConversationId(null);
+    } catch { /* ignore */ }
   };
+
+  const handleLogout = async () => { await authService.logout(); navigate("/login"); };
 
   if (loading) return (
-    <Box sx={{ height: "100vh", bgcolor: "#000", color: NEON, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "0.75rem", letterSpacing: "0.3em", textTransform: "uppercase", color: NEON }}>LOADING SYSTEM...</div>
-      </div>
-    </Box>
+    <div style={{ height: "100vh", backgroundColor: C.bg, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontFamily: font, fontSize: "0.9rem" }}>
+      Loading...
+    </div>
   );
 
-  const sidebarBg = {
-    background: "#0a0a0a",
-    backgroundImage: "linear-gradient(to right, rgba(0,255,136,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,255,136,0.05) 1px, transparent 1px)",
-    backgroundSize: "30px 30px",
-  };
+  const totalMessages = messages.length;
+  const totalConversations = conversations.length;
+
+  const Sidebar = () => (
+    <div style={{
+      width: 220,
+      minWidth: 220,
+      backgroundColor: C.sidebar,
+      borderRight: `1px solid ${C.border}`,
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+      overflow: "hidden",
+      fontFamily: font,
+    }}>
+      {/* Brand */}
+      <div style={{ padding: "16px 16px 12px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: "8px" }}>
+        <img src={rivetLogo} alt="Rivet AI" style={{ width: 28, height: 28, borderRadius: "6px", objectFit: "cover" }} />
+        <span style={{ color: C.text, fontWeight: 700, fontSize: "1rem", letterSpacing: "-0.01em" }}>Rivet AI</span>
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(false)} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 0 }}>
+            <Close sx={{ fontSize: 18 }} />
+          </button>
+        )}
+      </div>
+
+      {/* Nav */}
+      <div style={{ padding: "12px 8px 8px" }}>
+        {NAV_ITEMS.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "9px 10px",
+              borderRadius: "8px",
+              marginBottom: "2px",
+              cursor: item.soon ? "default" : "pointer",
+              backgroundColor: item.id === "chat" ? C.accentDim : "transparent",
+              color: item.id === "chat" ? C.accentText : C.muted,
+              transition: "background-color 0.15s",
+              userSelect: "none",
+            }}
+            onMouseEnter={(e) => { if (item.id !== "chat" && !item.soon) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
+            onMouseLeave={(e) => { if (item.id !== "chat") e.currentTarget.style.backgroundColor = "transparent"; }}
+          >
+            {item.icon}
+            <span style={{ fontSize: "0.875rem", fontWeight: item.id === "chat" ? 600 : 400 }}>{item.label}</span>
+            {item.soon && (
+              <span style={{ marginLeft: "auto", fontSize: "0.6rem", fontWeight: 600, backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b", padding: "2px 6px", borderRadius: "4px", letterSpacing: "0.05em" }}>
+                SOON
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Conversations */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 8px", scrollbarWidth: "thin", scrollbarColor: `${C.border} transparent` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 4px 6px" }}>
+          <span style={{ fontSize: "0.7rem", fontWeight: 600, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>Conversations</span>
+          <Tooltip title="New conversation">
+            <button
+              onClick={handleNewConversation}
+              style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", borderRadius: "4px", padding: "2px" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = C.accent)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
+            >
+              <Add sx={{ fontSize: 16 }} />
+            </button>
+          </Tooltip>
+        </div>
+
+        {conversations.map((conv) => (
+          <div
+            key={conv._id}
+            onClick={() => handleSelectConversation(conv._id)}
+            style={{
+              padding: "7px 8px",
+              borderRadius: "6px",
+              marginBottom: "1px",
+              cursor: "pointer",
+              backgroundColor: currentConversationId === conv._id ? C.accentDim : "transparent",
+              borderLeft: currentConversationId === conv._id ? `2px solid ${C.accent}` : "2px solid transparent",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "background-color 0.1s",
+            }}
+            onMouseEnter={(e) => { if (currentConversationId !== conv._id) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
+            onMouseLeave={(e) => { if (currentConversationId !== conv._id) e.currentTarget.style.backgroundColor = "transparent"; }}
+          >
+            {editingConvId === conv._id ? (
+              <TextField
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onBlur={() => handleEditConversationTitle(conv._id)}
+                onKeyPress={(e) => { if (e.key === "Enter") handleEditConversationTitle(conv._id); }}
+                variant="standard"
+                size="small"
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+                InputProps={{ disableUnderline: false, style: { color: C.text, fontSize: "0.8rem", fontFamily: font } }}
+                sx={{ flex: 1, "& .MuiInput-underline:after": { borderBottomColor: C.accent } }}
+              />
+            ) : (
+              <span style={{ flex: 1, fontSize: "0.8rem", color: currentConversationId === conv._id ? C.text : C.mutedLight, fontWeight: currentConversationId === conv._id ? 500 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {conv.title}
+              </span>
+            )}
+            <div style={{ display: "flex", gap: "2px", flexShrink: 0, opacity: 0 }} className="conv-actions">
+              <button
+                onClick={(e) => { e.stopPropagation(); setEditingConvId(conv._id); setEditTitle(conv.title); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: "2px", borderRadius: "3px" }}
+              >
+                <EditIcon sx={{ fontSize: 12 }} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setConversationToDelete(conv._id); setDeleteDialogOpen(true); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: "2px", borderRadius: "3px" }}
+              >
+                <Delete sx={{ fontSize: 12 }} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom */}
+      <div style={{ padding: "12px 8px", borderTop: `1px solid ${C.border}` }}>
+        <button
+          onClick={handleClearHistory}
+          style={{ width: "100%", background: "none", border: "none", cursor: "pointer", color: C.error, fontFamily: font, fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "6px", padding: "6px 8px", borderRadius: "6px", opacity: 0.7 }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = 0.7)}
+        >
+          <DeleteForever sx={{ fontSize: 16 }} />
+          Clear all history
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <ObsidianRoot>
-      {/* ── SIDEBAR DRAWER ── */}
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        PaperProps={{
-          sx: {
-            ...sidebarBg,
-            color: "white",
-            width: { xs: "85vw", sm: 300 },
-            maxWidth: 300,
-            borderRight: `1px solid rgba(0,255,136,0.15)`,
-            fontFamily: font,
-          },
-        }}
-      >
-        <Box sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(0,255,136,0.1)" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Box sx={{ width: 28, height: 28, border: `1px solid ${NEON}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: NEON, fontWeight: 700, fontSize: "0.65rem", letterSpacing: "0.05em" }}>CH</span>
-            </Box>
-            <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: "0.9rem", color: NEON, letterSpacing: "0.05em" }}>
-              Compliance House
-            </Typography>
-          </Box>
-          <IconButton onClick={() => setDrawerOpen(false)} sx={{ color: "rgba(255,255,255,0.4)", p: 0.5 }}>
-            <Close fontSize="small" />
-          </IconButton>
-        </Box>
+    <div style={{ height: "100vh", backgroundColor: C.bg, display: "flex", flexDirection: "column", fontFamily: font, overflow: "hidden", position: "fixed", inset: 0 }}>
 
-        <Box sx={{ px: 2, py: 1.5 }}>
-          <Button
-            fullWidth
-            startIcon={<Add />}
-            onClick={handleNewConversation}
-            sx={{
-              fontFamily: font, textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.75rem",
-              color: "#000", backgroundColor: NEON, borderRadius: 0, fontWeight: 700,
-              "&:hover": { backgroundColor: "#fff" },
-            }}
+      {/* ── TOP BAR ── */}
+      <div style={{
+        height: 52,
+        backgroundColor: C.surface,
+        borderBottom: `1px solid ${C.border}`,
+        display: "flex",
+        alignItems: "center",
+        padding: "0 16px",
+        gap: "12px",
+        flexShrink: 0,
+        zIndex: 10,
+      }}>
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 0 }}>
+            <MenuIcon sx={{ fontSize: 20 }} />
+          </button>
+        )}
+        {!isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <img src={rivetLogo} alt="Rivet AI" style={{ width: 26, height: 26, borderRadius: "6px", objectFit: "cover" }} />
+            <span style={{ color: C.text, fontWeight: 700, fontSize: "0.95rem" }}>Rivet AI</span>
+          </div>
+        )}
+
+        <div style={{ flex: 1 }} />
+
+        {/* User info (matching reference: name + plan on right) */}
+        <button
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: "8px", cursor: "pointer", color: C.text, fontFamily: font, display: "flex", alignItems: "center", gap: "10px", padding: "6px 12px 6px 8px" }}
+        >
+          <Avatar sx={{ width: 26, height: 26, backgroundColor: C.accent, fontSize: "0.75rem", fontWeight: 700 }}>
+            {user?.username?.[0]?.toUpperCase()}
+          </Avatar>
+          {!isMobile && (
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: "0.8rem", fontWeight: 600, color: C.text, lineHeight: 1.2 }}>{user?.username?.toUpperCase()}</div>
+              <div style={{ fontSize: "0.65rem", color: C.muted }}>Free Plan</div>
+            </div>
+          )}
+        </button>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          PaperProps={{ sx: { backgroundColor: C.card, border: `1px solid ${C.border}`, borderRadius: "8px", color: C.text, minWidth: 160, fontFamily: font } }}
+        >
+          <MenuItem
+            onClick={handleLogout}
+            sx={{ fontFamily: font, fontSize: "0.875rem", gap: 1, color: C.mutedLight, "&:hover": { backgroundColor: "rgba(255,255,255,0.05)", color: C.text } }}
           >
-            New Conversation
-          </Button>
-        </Box>
+            <Logout sx={{ fontSize: 16 }} /> Logout
+          </MenuItem>
+        </Menu>
+      </div>
 
-        <Divider sx={{ borderColor: "rgba(0,255,136,0.1)" }} />
+      {/* ── BODY ── */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
 
-        <Box sx={{ flex: 1, overflowY: "auto", px: 1, "&::-webkit-scrollbar": { width: "4px" }, "&::-webkit-scrollbar-thumb": { background: "rgba(0,255,136,0.2)" } }}>
-          <Typography sx={{ px: 1, py: 1, display: "block", color: "rgba(0,255,136,0.4)", fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: font }}>
-            Recent Conversations
-          </Typography>
-          <List dense>
-            {conversations.map((conv) => (
-              <ListItem key={conv._id} disablePadding sx={{
-                mb: 0.25,
-                backgroundColor: currentConversationId === conv._id ? "rgba(0,255,136,0.08)" : "transparent",
-                borderLeft: currentConversationId === conv._id ? `2px solid ${NEON}` : "2px solid transparent",
-                "&:hover": { backgroundColor: "rgba(0,255,136,0.05)" },
-              }}>
-                <ListItemButton onClick={() => handleSelectConversation(conv._id)} sx={{ borderRadius: 0, py: 0.75 }}>
-                  <ListItemIcon sx={{ minWidth: 28 }}>
-                    <ChatIcon sx={{ fontSize: 14, color: currentConversationId === conv._id ? NEON : "rgba(255,255,255,0.3)" }} />
-                  </ListItemIcon>
-                  {editingConvId === conv._id ? (
-                    <TextField
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      onBlur={() => handleEditConversationTitle(conv._id)}
-                      onKeyPress={(e) => { if (e.key === "Enter") handleEditConversationTitle(conv._id); }}
-                      variant="standard"
-                      size="small"
-                      autoFocus
-                      InputProps={{ style: { color: "white", fontSize: "0.8rem", fontFamily: font } }}
-                      sx={{ flex: 1, "& .MuiInput-underline:before": { borderBottomColor: "rgba(0,255,136,0.3)" }, "& .MuiInput-underline:after": { borderBottomColor: NEON } }}
-                    />
-                  ) : (
-                    <ListItemText
-                      primary={conv.title}
-                      secondary={conv.preview}
-                      primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: currentConversationId === conv._id ? 600 : 400, noWrap: true, fontFamily: font, color: "rgba(255,255,255,0.85)" }}
-                      secondaryTypographyProps={{ fontSize: "0.7rem", noWrap: true, color: "rgba(255,255,255,0.3)", fontFamily: font }}
-                      sx={{ flex: 1, minWidth: 0 }}
-                    />
+        {/* Mobile overlay sidebar */}
+        {isMobile && sidebarOpen && (
+          <div style={{ position: "absolute", inset: 0, zIndex: 20, display: "flex" }}>
+            <div style={{ flex: "0 0 240px" }}><Sidebar /></div>
+            <div style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} onClick={() => setSidebarOpen(false)} />
+          </div>
+        )}
+
+        {/* Desktop sidebar */}
+        {!isMobile && <Sidebar />}
+
+        {/* ── MAIN CONTENT ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+          {/* Page header */}
+          <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+            <h1 style={{ color: C.text, fontSize: "1.25rem", fontWeight: 700, margin: "0 0 14px", letterSpacing: "-0.02em" }}>Conversations</h1>
+
+            {/* Stats row — matching reference layout */}
+            <div style={{ display: "flex", gap: "12px" }}>
+              <StatCard label="Total messages" value={totalMessages} />
+              <StatCard label="Conversations" value={totalConversations} />
+              <StatCard label="AI Model" value="GPT-4o" />
+              <StatCard label="Status" value={<span style={{ color: "#34d399", fontSize: "1rem" }}>●&nbsp;Live</span>} />
+            </div>
+          </div>
+
+          {/* Chat area */}
+          <div style={{
+            flex: 1, overflowY: "auto", padding: "20px 24px",
+            display: "flex", flexDirection: "column", gap: "16px",
+            scrollbarWidth: "thin", scrollbarColor: `${C.border} transparent`,
+          }}>
+            {messages.length === 0 && !isTyping && (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "2rem" }}>
+                <div style={{ fontSize: "2rem", fontWeight: 800, color: C.text, lineHeight: 1.15, marginBottom: "1rem", maxWidth: 480 }}>
+                  Orchestrate Your{" "}
+                  <span style={{ background: "linear-gradient(90deg, #5b8dee, #8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                    NHS Compliance
+                  </span>
+                  {" "}with AI
+                </div>
+                <p style={{ color: C.muted, fontSize: "0.9rem", maxWidth: 420, lineHeight: 1.6, margin: "0 0 2rem" }}>
+                  Ask anything about NHS workflows, compliance requirements, DBS checks, Right to Work checks, and regulatory guidance.
+                </p>
+                <button
+                  onClick={handleNewConversation}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "8px",
+                    backgroundColor: C.accent, color: "#fff", fontWeight: 600,
+                    fontSize: "0.9rem", border: "none", borderRadius: "8px",
+                    padding: "10px 20px", cursor: "pointer", fontFamily: font,
+                  }}
+                >
+                  <Add sx={{ fontSize: 18 }} /> New Conversation
+                </button>
+              </div>
+            )}
+
+            <AnimatePresence>
+              {messages.map((msg, idx) => (
+                <React.Fragment key={msg._id || idx}>
+                  {/* USER */}
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      style={{
+                        backgroundColor: C.userBubble,
+                        border: `1px solid ${C.userBubbleBorder}`,
+                        borderRadius: "12px 12px 2px 12px",
+                        padding: "10px 14px",
+                        maxWidth: "72%",
+                        color: C.text,
+                        fontSize: "0.9rem",
+                        lineHeight: 1.55,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      <div>{msg.message}</div>
+                      <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.35)", textAlign: "right", marginTop: "4px" }}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* AI */}
+                  {msg.response && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxWidth: "80%" }}>
+                      <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                        <img src={rivetLogo} alt="AI" style={{ width: 24, height: 24, borderRadius: "6px", objectFit: "cover", flexShrink: 0, marginTop: "2px" }} />
+                        <motion.div
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.25, delay: 0.05 }}
+                          style={{
+                            backgroundColor: C.aiBubble,
+                            border: `1px solid ${C.aiBubbleBorder}`,
+                            borderRadius: "2px 12px 12px 12px",
+                            padding: "10px 14px",
+                            color: C.text,
+                            fontSize: "0.9rem",
+                            lineHeight: 1.65,
+                            wordBreak: "break-word",
+                            whiteSpace: "pre-line",
+                          }}
+                        >
+                          {msg.response}
+                          <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.3)", marginTop: "6px" }}>
+                            Rivet Agent · {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </motion.div>
+                      </div>
+                      <div style={{ display: "flex", gap: "4px", marginLeft: "34px" }}>
+                        <Tooltip title={copiedId === msg.response ? "Copied!" : "Copy"}>
+                          <button onClick={() => handleCopyMessage(msg.response)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: "4px", borderRadius: "4px" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = C.accent)}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
+                          >
+                            {copiedId === msg.response ? <Check sx={{ fontSize: 13 }} /> : <ContentCopy sx={{ fontSize: 13 }} />}
+                          </button>
+                        </Tooltip>
+                        <Tooltip title="Regenerate">
+                          <button onClick={() => handleRegenerateResponse(msg._id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: "4px", borderRadius: "4px" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = C.accent)}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
+                          >
+                            <Refresh sx={{ fontSize: 13 }} />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    </div>
                   )}
-                  <Box sx={{ display: "flex", gap: 0.25, flexShrink: 0 }}>
-                    <Tooltip title="Rename">
-                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); setEditingConvId(conv._id); setEditTitle(conv.title); }} sx={{ color: "rgba(255,255,255,0.3)", p: 0.5, "&:hover": { color: NEON } }}>
-                        <EditIcon sx={{ fontSize: 13 }} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); setConversationToDelete(conv._id); setDeleteDialogOpen(true); }} sx={{ color: "rgba(255,255,255,0.3)", p: 0.5, "&:hover": { color: "#ff4444" } }}>
-                        <Delete sx={{ fontSize: 13 }} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
+                </React.Fragment>
+              ))}
+            </AnimatePresence>
 
-        <Divider sx={{ borderColor: "rgba(0,255,136,0.1)" }} />
-        <List>
-          <ListItem button onClick={handleClearHistory} sx={{ "&:hover": { backgroundColor: "rgba(255,68,68,0.08)" } }}>
-            <ListItemIcon sx={{ color: "#ff4444", minWidth: 36 }}><DeleteForever fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Clear All History" primaryTypographyProps={{ fontSize: "0.8rem", fontFamily: font, color: "rgba(255,255,255,0.6)" }} />
-          </ListItem>
-        </List>
-      </Drawer>
+            {isTyping && (
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <img src={rivetLogo} alt="AI" style={{ width: 24, height: 24, borderRadius: "6px", objectFit: "cover", flexShrink: 0 }} />
+                <div style={{ backgroundColor: C.aiBubble, border: `1px solid ${C.aiBubbleBorder}`, borderRadius: "2px 12px 12px 12px", padding: "10px 14px" }}>
+                  <TypingIndicator />
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* ── INPUT BAR ── */}
+          <div style={{
+            padding: "14px 24px 16px",
+            borderTop: `1px solid ${C.border}`,
+            backgroundColor: C.surface,
+            flexShrink: 0,
+          }}>
+            <form
+              onSubmit={handleSendMessage}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                backgroundColor: C.card,
+                border: `1px solid ${C.border}`,
+                borderRadius: "10px",
+                padding: "4px 8px 4px 14px",
+                transition: "border-color 0.2s",
+              }}
+              onFocusCapture={(e) => (e.currentTarget.style.borderColor = C.accent)}
+              onBlurCapture={(e) => (e.currentTarget.style.borderColor = C.border)}
+            >
+              <TextField
+                fullWidth
+                placeholder="Ask anything about NHS compliance..."
+                multiline
+                maxRows={4}
+                variant="standard"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); }
+                }}
+                InputProps={{ disableUnderline: true, style: { color: C.text, fontFamily: font, fontSize: "0.9rem" } }}
+                sx={{ flex: 1 }}
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim() || isTyping}
+                style={{
+                  flexShrink: 0,
+                  width: 34,
+                  height: 34,
+                  backgroundColor: newMessage.trim() && !isTyping ? C.accent : "transparent",
+                  color: newMessage.trim() && !isTyping ? "#fff" : C.muted,
+                  border: `1px solid ${newMessage.trim() && !isTyping ? C.accent : C.border}`,
+                  borderRadius: "6px",
+                  cursor: newMessage.trim() && !isTyping ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => { if (newMessage.trim() && !isTyping) e.currentTarget.style.backgroundColor = "#4a7de0"; }}
+                onMouseLeave={(e) => { if (newMessage.trim() && !isTyping) e.currentTarget.style.backgroundColor = C.accent; }}
+              >
+                <Send sx={{ fontSize: 16 }} />
+              </button>
+            </form>
+            <p style={{ color: C.muted, fontSize: "0.7rem", textAlign: "center", marginTop: "8px", marginBottom: 0 }}>
+              Rivet AI · NHS Compliance Platform
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* ── DELETE DIALOG ── */}
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        PaperProps={{ sx: { bgcolor: "#0a0a0a", color: "white", border: "1px solid rgba(0,255,136,0.2)", borderRadius: 0, fontFamily: font } }}
+        PaperProps={{ sx: { backgroundColor: C.card, border: `1px solid ${C.border}`, borderRadius: "12px", color: C.text, fontFamily: font } }}
       >
-        <DialogTitle sx={{ fontFamily: font, fontSize: "1rem", borderBottom: "1px solid rgba(0,255,136,0.1)" }}>Delete Conversation?</DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Typography sx={{ fontFamily: font, fontSize: "0.9rem", color: "rgba(255,255,255,0.6)" }}>
-            This will permanently delete this conversation and all its messages.
-          </Typography>
+        <DialogTitle sx={{ fontFamily: font, fontSize: "1rem", fontWeight: 700 }}>Delete Conversation?</DialogTitle>
+        <DialogContent>
+          <p style={{ color: C.muted, fontSize: "0.875rem", margin: 0 }}>This will permanently delete this conversation and all its messages.</p>
         </DialogContent>
-        <DialogActions sx={{ borderTop: "1px solid rgba(0,255,136,0.1)", gap: 1, p: 2 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: font, color: "rgba(255,255,255,0.5)", borderRadius: 0, textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.08em" }}>Cancel</Button>
-          <Button onClick={handleDeleteConversation} sx={{ fontFamily: font, color: "#ff4444", borderRadius: 0, textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.08em" }}>Delete</Button>
+        <DialogActions sx={{ gap: 1, p: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ fontFamily: font, color: C.muted, textTransform: "none", fontSize: "0.875rem" }}>Cancel</Button>
+          <Button onClick={handleDeleteConversation} sx={{ fontFamily: font, color: C.error, textTransform: "none", fontSize: "0.875rem" }}>Delete</Button>
         </DialogActions>
       </Dialog>
 
-      {/* ── MAIN CONTENT ── */}
-      <Box sx={{ display: "flex", flexDirection: "column", flex: 1, height: "100%", position: "relative", overflow: "hidden" }}>
-
-        {/* ── TOP BAR ── */}
-        <Box sx={{
-          display: "flex", alignItems: "center", px: 2, py: 1.5, gap: 1.5,
-          backgroundColor: "#000",
-          borderBottom: "1px solid rgba(0,255,136,0.12)",
-          flexShrink: 0,
-        }}>
-          <IconButton onClick={() => setDrawerOpen(true)} sx={{ color: "rgba(255,255,255,0.5)", p: 0.75, "&:hover": { color: NEON }, borderRadius: 0 }}>
-            <MenuIcon fontSize="small" />
-          </IconButton>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1 }}>
-            <Avatar sx={{ width: 26, height: 26, bgcolor: "transparent", border: "1px solid rgba(0,255,136,0.3)" }} src={rivetLogo} alt="CH" />
-            <Box>
-              <Typography sx={{ fontFamily: font, fontWeight: 600, fontSize: "0.85rem", lineHeight: 1.2 }}>Rivet Agent</Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: NEON, boxShadow: `0 0 4px ${NEON}` }} />
-                <Typography sx={{ fontFamily: font, fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", letterSpacing: "0.05em" }}>ONLINE</Typography>
-              </Box>
-            </Box>
-          </Box>
-
-          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ p: 0.5, borderRadius: 0 }}>
-            <Avatar sx={{ width: 28, height: 28, bgcolor: NEON, color: "#000", fontFamily: font, fontSize: "0.8rem", fontWeight: 700 }}>
-              {user?.username?.[0]?.toUpperCase()}
-            </Avatar>
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-            PaperProps={{ sx: { bgcolor: "#0a0a0a", color: "white", border: "1px solid rgba(0,255,136,0.15)", borderRadius: 0, minWidth: 160 } }}
-          >
-            <MenuItem onClick={handleLogout} sx={{ fontFamily: font, fontSize: "0.85rem", gap: 1, "&:hover": { backgroundColor: "rgba(0,255,136,0.08)", color: NEON } }}>
-              <Logout sx={{ fontSize: 16 }} /> Logout
-            </MenuItem>
-          </Menu>
-        </Box>
-
-        {/* ── MESSAGES AREA ── */}
-        <Box sx={{
-          flex: 1, overflowY: "auto", p: { xs: 2, sm: 3 },
-          display: "flex", flexDirection: "column", gap: 2,
-          "&::-webkit-scrollbar": { width: "4px" },
-          "&::-webkit-scrollbar-track": { background: "transparent" },
-          "&::-webkit-scrollbar-thumb": { background: "rgba(0,255,136,0.15)", borderRadius: "2px" },
-        }}>
-
-          {messages.length === 0 && !isTyping && (
-            <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", opacity: 0.6, gap: 2 }}>
-              <Box sx={{ width: 48, height: 48, border: `1px solid rgba(0,255,136,0.3)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: NEON, fontWeight: 700, fontSize: "1rem" }}>CH</span>
-              </Box>
-              <Typography sx={{ fontFamily: font, color: "rgba(255,255,255,0.4)", fontSize: "0.9rem", textAlign: "center", maxWidth: 300, letterSpacing: "0.02em" }}>
-                How can I help you with NHS compliance today?
-              </Typography>
-            </Box>
-          )}
-
-          <AnimatePresence>
-            {messages.map((msg, index) => (
-              <React.Fragment key={msg._id || index}>
-                {/* USER MESSAGE */}
-                <Box sx={{ alignSelf: "flex-end", display: "flex", justifyContent: "flex-end", width: "100%" }}>
-                  <UserBubble
-                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Typography variant="body2" sx={{ fontFamily: font, fontWeight: 500, lineHeight: 1.5 }}>{msg.message}</Typography>
-                    <Typography variant="caption" sx={{ display: "block", textAlign: "right", mt: 0.5, opacity: 0.5, fontSize: "0.65rem", fontFamily: font }}>
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </Typography>
-                  </UserBubble>
-                </Box>
-
-                {/* AI RESPONSE */}
-                {msg.response && (
-                  <Box sx={{ alignSelf: "flex-start", display: "flex", flexDirection: "column", gap: 0.5, maxWidth: { xs: "95%", sm: "85%" }, width: "100%" }}>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Avatar sx={{ width: 22, height: 22, bgcolor: "transparent", border: `1px solid rgba(0,255,136,0.25)`, mt: 0.5, flexShrink: 0 }} src={rivetLogo} alt="CH" />
-                      <AIBubble
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.05 }}
-                      >
-                        <Typography variant="body2" sx={{ whiteSpace: "pre-line", fontFamily: font, lineHeight: 1.65 }}>{msg.response}</Typography>
-                        <Typography variant="caption" sx={{ display: "block", mt: 0.75, opacity: 0.35, fontSize: "0.65rem", fontFamily: font }}>
-                          Rivet Agent · {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </Typography>
-                      </AIBubble>
-                    </Box>
-                    <Box sx={{ display: "flex", gap: 0.5, ml: 3.5 }}>
-                      <Tooltip title={copiedId === msg.response ? "Copied!" : "Copy"}>
-                        <IconButton size="small" onClick={() => handleCopyMessage(msg.response)} sx={{ color: "rgba(255,255,255,0.25)", p: 0.5, borderRadius: 0, "&:hover": { color: NEON } }}>
-                          {copiedId === msg.response ? <Check sx={{ fontSize: 13 }} /> : <ContentCopy sx={{ fontSize: 13 }} />}
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Regenerate">
-                        <IconButton size="small" onClick={() => handleRegenerateResponse(msg._id)} sx={{ color: "rgba(255,255,255,0.25)", p: 0.5, borderRadius: 0, "&:hover": { color: NEON } }}>
-                          <Refresh sx={{ fontSize: 13 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </Box>
-                )}
-              </React.Fragment>
-            ))}
-          </AnimatePresence>
-
-          {/* TYPING BUBBLE */}
-          {isTyping && (
-            <Box sx={{ alignSelf: "flex-start", display: "flex", gap: 1 }}>
-              <Avatar sx={{ width: 22, height: 22, bgcolor: "transparent", border: `1px solid rgba(0,255,136,0.25)`, flexShrink: 0 }} src={rivetLogo} alt="CH" />
-              <Box sx={{ backgroundColor: "#0d0d0d", border: "1px solid rgba(0,255,136,0.15)", p: "4px 12px" }}>
-                <TypingIndicator />
-              </Box>
-            </Box>
-          )}
-
-          <div ref={messagesEndRef} />
-        </Box>
-
-        {/* ── INPUT AREA ── */}
-        <Box sx={{
-          padding: { xs: "12px 16px", sm: "16px 24px" },
-          backgroundColor: "#000",
-          borderTop: "1px solid rgba(0,255,136,0.12)",
-          flexShrink: 0,
-        }}>
-          <Box
-            component="form"
-            onSubmit={handleSendMessage}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              backgroundColor: "#0a0a0a",
-              border: "1px solid rgba(0,255,136,0.2)",
-              px: { xs: 1.5, sm: 2 },
-              py: 1,
-              transition: "border-color 0.2s",
-              "&:focus-within": { borderColor: "rgba(0,255,136,0.5)" },
-            }}
-          >
-            <TextField
-              fullWidth
-              placeholder="Ask anything about NHS compliance..."
-              multiline
-              maxRows={4}
-              variant="standard"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); }
-              }}
-              InputProps={{ disableUnderline: true, style: { color: "white", fontFamily: font, fontSize: "0.95rem" } }}
-              sx={{ flex: 1, "& .MuiInputBase-input": { caretColor: NEON } }}
-            />
-            <IconButton
-              type="submit"
-              disabled={!newMessage.trim() || isTyping}
-              sx={{
-                bgcolor: newMessage.trim() && !isTyping ? NEON : "transparent",
-                color: newMessage.trim() && !isTyping ? "#000" : "rgba(255,255,255,0.2)",
-                border: newMessage.trim() && !isTyping ? "none" : "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 0,
-                width: 36, height: 36,
-                transition: "all 0.2s",
-                "&:hover": { bgcolor: newMessage.trim() && !isTyping ? "#fff" : "rgba(0,255,136,0.08)", color: newMessage.trim() && !isTyping ? "#000" : "rgba(255,255,255,0.3)" },
-                "&:disabled": { bgcolor: "transparent", color: "rgba(255,255,255,0.1)" },
-              }}
-            >
-              <Send sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Box>
-          <Typography sx={{ fontFamily: font, fontSize: "0.6rem", color: "rgba(255,255,255,0.2)", letterSpacing: "0.05em", textAlign: "center", mt: 0.75 }}>
-            COMPLIANCE HOUSE · NHS AI SYSTEM v2.4.1
-          </Typography>
-        </Box>
-      </Box>
-
       <style>{`
-        input::placeholder, textarea::placeholder { color: #444 !important; font-family: ${font}; }
+        textarea::placeholder { color: #374151 !important; }
+        .conv-actions { opacity: 0; }
+        div:hover > .conv-actions { opacity: 1 !important; }
       `}</style>
-    </ObsidianRoot>
+    </div>
   );
 };
 

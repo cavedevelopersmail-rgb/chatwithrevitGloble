@@ -1,26 +1,45 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Lock, Mail, User, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import authService from "../../services/authService";
+import rivetLogo from "../../assets/rivetGlobalpng.png";
 
-const NEON = "#00ff88";
-const font = "'Space Grotesk', sans-serif";
+const C = {
+  bg: "#0c1117",
+  surface: "#131929",
+  card: "#1a2234",
+  border: "#1e2d45",
+  accent: "#5b8dee",
+  accentHover: "#4a7de0",
+  text: "#f1f5f9",
+  muted: "#64748b",
+  error: "#f87171",
+};
 
-const makeInputStyle = () => ({
-  backgroundColor: "transparent",
-  borderTop: "none",
-  borderLeft: "none",
-  borderRight: "none",
-  borderBottom: "1px solid rgba(0,255,136,0.3)",
-  outline: "none",
-  borderRadius: 0,
-  fontFamily: font,
-  fontSize: "1rem",
-  color: "white",
-  caretColor: NEON,
+const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
+const inputStyle = {
   width: "100%",
-  padding: "12px 12px 12px 40px",
-});
+  padding: "10px 14px",
+  backgroundColor: C.card,
+  border: `1px solid ${C.border}`,
+  borderRadius: "8px",
+  color: C.text,
+  fontSize: "0.95rem",
+  fontFamily: font,
+  outline: "none",
+  transition: "border-color 0.2s",
+  boxSizing: "border-box",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "0.8rem",
+  fontWeight: 500,
+  color: C.muted,
+  marginBottom: "6px",
+  letterSpacing: "0.02em",
+};
 
 const Register = () => {
   const [formData, setFormData] = useState({ username: "", email: "", password: "" });
@@ -51,210 +70,126 @@ const Register = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", width: "100%", display: "flex", overflow: "hidden", fontFamily: font, backgroundColor: "#000", color: "white" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font, padding: "1rem" }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
 
-      {/* ── LEFT PANEL ── */}
-      <div
-        style={{
-          display: "none",
-          width: "50%",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          padding: "5rem",
-          position: "relative",
-          overflow: "hidden",
-          backgroundColor: "#0a0a0a",
-          borderRight: "1px solid rgba(0,255,136,0.2)",
-          backgroundImage: "linear-gradient(to right, rgba(0,255,136,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,255,136,0.07) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-        className="obsidian-left-panel"
-      >
-        {[
-          { transform: "rotate(45deg) scale(1.5)" },
-          { transform: "rotate(25deg) scale(1.25)" },
-          { transform: "rotate(-15deg) scale(1.1)" },
-        ].map((s, i) => (
-          <div key={i} style={{
-            position: "absolute", top: "50%", left: "50%",
-            width: "120%", height: "120%",
-            border: `1px solid ${NEON}`,
-            opacity: 0.07, pointerEvents: "none",
-            ...s, marginTop: "-60%", marginLeft: "-60%",
-          }} />
-        ))}
-
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ width: 48, height: 48, border: `1px solid ${NEON}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "2rem" }}>
-            <span style={{ color: NEON, fontWeight: 700, letterSpacing: "0.1em", fontSize: "1.1rem" }}>CH</span>
-          </div>
-          <p style={{ color: NEON, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase", margin: 0 }}>Compliance House</p>
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "2.5rem", justifyContent: "center" }}>
+          <img src={rivetLogo} alt="Rivet AI" style={{ width: 36, height: 36, borderRadius: "8px", objectFit: "cover" }} />
+          <span style={{ color: C.text, fontWeight: 700, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>Rivet AI</span>
         </div>
 
-        <div style={{ position: "relative", zIndex: 1, flexGrow: 1, display: "flex", alignItems: "center" }}>
-          <div style={{
-            fontSize: "clamp(5rem, 10vw, 14rem)",
-            fontWeight: 700, lineHeight: 1, userSelect: "none",
-            color: "transparent",
-            WebkitTextStroke: "1px rgba(0,255,136,0.15)",
-          }}>
-            NHS<br />AI
-          </div>
-        </div>
-
-        <p style={{ position: "relative", zIndex: 1, color: "#444", fontSize: "0.8rem", maxWidth: 360 }}>
-          Join the platform trusted by 10,000+ NHS compliance professionals.
-        </p>
-      </div>
-
-      {/* ── RIGHT PANEL ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "2rem", backgroundColor: "#000" }}>
-        <div style={{ width: "100%", maxWidth: 400, margin: "0 auto" }}>
-
-          {/* Mobile logo */}
-          <div style={{ marginBottom: "2.5rem" }}>
-            <div style={{ width: 40, height: 40, border: `1px solid ${NEON}`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "0.75rem" }}>
-              <span style={{ color: NEON, fontWeight: 700, letterSpacing: "0.1em" }}>CH</span>
-            </div>
-            <p style={{ color: NEON, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase", margin: 0 }}>Compliance House</p>
-          </div>
-
-          <div style={{ marginBottom: "3rem" }}>
-            <h1 style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 0.75rem" }}>Create Account</h1>
-            <p style={{ color: "#666", fontSize: "0.9rem", margin: 0 }}>Register to access the NHS AI compliance platform.</p>
-          </div>
+        {/* Card */}
+        <div style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: "12px", padding: "2rem" }}>
+          <h1 style={{ color: C.text, fontSize: "1.5rem", fontWeight: 700, margin: "0 0 0.4rem", letterSpacing: "-0.02em" }}>Create account</h1>
+          <p style={{ color: C.muted, fontSize: "0.875rem", margin: "0 0 1.75rem" }}>Join the NHS compliance platform</p>
 
           {error && (
-            <div style={{ marginBottom: "1.5rem", padding: "0.75rem 1rem", backgroundColor: "rgba(255,0,0,0.08)", border: "1px solid rgba(255,0,0,0.25)", color: "#ff6b6b", fontSize: "0.875rem" }}>
+            <div style={{ backgroundColor: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: "8px", padding: "10px 14px", color: C.error, fontSize: "0.875rem", marginBottom: "1.25rem" }}>
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={labelStyle}>Username</label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="john_smith"
+                required
+                style={inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = C.accent)}
+                onBlur={(e) => (e.target.style.borderColor = C.border)}
+              />
+            </div>
 
-              {/* Username */}
-              <div style={{ position: "relative" }}>
-                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
-                  <User size={18} strokeWidth={2} />
-                </div>
-                <input
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="Username"
-                  required
-                  style={makeInputStyle()}
-                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
-                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
-                />
-              </div>
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={labelStyle}>Email address</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="you@nhsorg.co.uk"
+                required
+                style={inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = C.accent)}
+                onBlur={(e) => (e.target.style.borderColor = C.border)}
+              />
+            </div>
 
-              {/* Email */}
+            <div style={{ marginBottom: "1.75rem" }}>
+              <label style={labelStyle}>Password</label>
               <div style={{ position: "relative" }}>
-                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
-                  <Mail size={18} strokeWidth={2} />
-                </div>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="NHS Email Address"
-                  required
-                  style={makeInputStyle()}
-                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
-                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
-                />
-              </div>
-
-              {/* Password */}
-              <div style={{ position: "relative" }}>
-                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
-                  <Lock size={18} strokeWidth={2} />
-                </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Password"
+                  placeholder="••••••••"
                   required
-                  style={{ ...makeInputStyle(), paddingRight: "40px" }}
-                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
-                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
+                  style={{ ...inputStyle, paddingRight: "44px" }}
+                  onFocus={(e) => (e.target.style.borderColor = C.accent)}
+                  onBlur={(e) => (e.target.style.borderColor = C.border)}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", padding: 0 }}
+                  style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", alignItems: "center", padding: 0 }}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-
-              {/* CTA */}
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    width: "100%",
-                    backgroundColor: loading ? "rgba(0,255,136,0.5)" : NEON,
-                    color: "#000",
-                    fontWeight: 700,
-                    fontSize: "0.9rem",
-                    letterSpacing: "0.08em",
-                    padding: "1rem",
-                    border: "none",
-                    borderRadius: 0,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    fontFamily: font,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "0.75rem",
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = "#fff"; }}
-                  onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = NEON; }}
-                >
-                  {loading ? "CREATING ACCOUNT..." : (
-                    <><span>CREATE ACCOUNT</span><ArrowRight size={18} /></>
-                  )}
-                </button>
-
-                <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid rgba(0,255,136,0.1)", textAlign: "center" }}>
-                  <p style={{ fontSize: "0.75rem", color: "rgba(0,255,136,0.55)", letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>
-                    Already have an account?{" "}
-                    <button
-                      type="button"
-                      onClick={() => navigate("/login")}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: NEON, fontFamily: font, fontSize: "inherit", letterSpacing: "inherit", textTransform: "inherit", textDecoration: "underline" }}
-                    >
-                      Sign in
-                    </button>
-                  </p>
-                </div>
-              </div>
-
             </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "11px",
+                backgroundColor: loading ? `${C.accent}99` : C.accent,
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                border: "none",
+                borderRadius: "8px",
+                cursor: loading ? "not-allowed" : "pointer",
+                fontFamily: font,
+                transition: "background-color 0.15s",
+              }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = C.accentHover; }}
+              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = C.accent; }}
+            >
+              {loading ? "Creating account..." : "Create account"}
+            </button>
           </form>
+
+          <p style={{ color: C.muted, fontSize: "0.85rem", textAlign: "center", marginTop: "1.5rem", marginBottom: 0 }}>
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: C.accent, fontFamily: font, fontSize: "inherit", fontWeight: 500 }}
+            >
+              Sign in
+            </button>
+          </p>
         </div>
+
+        <p style={{ color: C.muted, fontSize: "0.75rem", textAlign: "center", marginTop: "1.5rem" }}>
+          NHS Compliance Platform · Secure Access
+        </p>
       </div>
 
       <style>{`
-        @media (min-width: 1024px) {
-          .obsidian-left-panel { display: flex !important; }
-        }
-        input::placeholder { color: #444; }
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus {
-          -webkit-text-fill-color: white;
-          -webkit-box-shadow: 0 0 0px 1000px #000 inset;
-          transition: background-color 5000s ease-in-out 0s;
+        input::placeholder { color: #374151; }
+        input:-webkit-autofill, input:-webkit-autofill:focus {
+          -webkit-text-fill-color: ${C.text};
+          -webkit-box-shadow: 0 0 0px 1000px ${C.card} inset;
         }
       `}</style>
     </div>
