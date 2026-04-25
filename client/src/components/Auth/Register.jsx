@@ -1,146 +1,29 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  TextField,
-  Button,
-  Typography,
-  Box,
-  Link,
-  InputAdornment,
-  IconButton,
-} from "@mui/material";
-import {
-  Person,
-  Email,
-  Lock,
-  Visibility,
-  VisibilityOff,
-  HowToReg,
-} from "@mui/icons-material";
-import { motion } from "framer-motion";
-import { styled } from "@mui/material/styles";
+import { ArrowRight, Lock, Mail, User, Eye, EyeOff } from "lucide-react";
 import authService from "../../services/authService";
 
-// --- STYLED COMPONENTS ---
+const NEON = "#00ff88";
+const font = "'Space Grotesk', sans-serif";
 
-const BackgroundContainer = styled(Box)(({ theme }) => ({
-  width: "100%",
-  minHeight: "100vh",
-  height: "100dvh",
-  background: "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  position: "relative",
-  overflow: "hidden",
-  [theme.breakpoints.down("sm")]: {
-    alignItems: "flex-start",
-    paddingTop: theme.spacing(4),
-    minHeight: "100dvh",
-  },
-}));
-
-// Floating orbs with pointer-events: none so they don't block inputs
-const FloatingOrb = styled(motion.div)(
-  ({ size, color, top, left, right, bottom }) => ({
-    position: "absolute",
-    width: size,
-    height: size,
-    borderRadius: "50%",
-    background: color,
-    filter: "blur(80px)",
-    top: top,
-    left: left,
-    right: right,
-    bottom: bottom,
-    zIndex: 0,
-    opacity: 0.6,
-    pointerEvents: "none", // Crucial: lets clicks pass through to the form
-  })
-);
-
-const GlassCard = styled(motion.div)(({ theme }) => ({
-  background: "rgba(255, 255, 255, 0.05)",
-  backdropFilter: "blur(20px)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  borderRadius: "24px",
-  padding: "24px",
-  [theme.breakpoints.up("sm")]: {
-    padding: "40px",
-  },
-  width: "90%",
-  maxWidth: "420px",
-  boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
-  zIndex: 1,
-  color: "white",
-  display: "flex",
-  flexDirection: "column",
-  [theme.breakpoints.down("sm")]: {
-    width: "92%",
-    padding: "20px",
-    borderRadius: "20px",
-  },
-}));
-
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  marginBottom: "20px",
-  "& .MuiOutlinedInput-root": {
-    color: "white",
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
-    borderRadius: "12px",
-    transition: "0.3s",
-    "& fieldset": { borderColor: "rgba(255, 255, 255, 0.2)" },
-    "&:hover fieldset": { borderColor: "rgba(255, 255, 255, 0.5)" },
-    "&.Mui-focused fieldset": {
-      borderColor: "#a8c0ff",
-      boxShadow: "0 0 10px rgba(168, 192, 255, 0.3)",
-    },
-  },
-  "& .MuiInputLabel-root": { color: "rgba(255, 255, 255, 0.7)" },
-  "& .MuiInputLabel-root.Mui-focused": { color: "#a8c0ff" },
-  "& .MuiInputAdornment-root": { color: "rgba(255, 255, 255, 0.7)" },
-  [theme.breakpoints.down("sm")]: {
-    marginBottom: "16px",
-    "& .MuiInputBase-input": {
-      fontSize: "0.95rem",
-    },
-    "& .MuiInputLabel-root": {
-      fontSize: "0.9rem",
-    },
-  },
-}));
-
-const GradientButton = styled(Button)(({ theme }) => ({
-  background: "linear-gradient(45deg, #667eea 30%, #764ba2 90%)",
-  border: 0,
-  borderRadius: "12px",
-  boxShadow: "0 3px 5px 2px rgba(102, 126, 234, .3)",
-  color: "white",
-  height: 48,
-  padding: "0 30px",
+const makeInputStyle = () => ({
+  backgroundColor: "transparent",
+  borderTop: "none",
+  borderLeft: "none",
+  borderRight: "none",
+  borderBottom: "1px solid rgba(0,255,136,0.3)",
+  outline: "none",
+  borderRadius: 0,
+  fontFamily: font,
   fontSize: "1rem",
-  fontWeight: "bold",
-  textTransform: "none",
-  marginTop: "10px",
-  transition: "transform 0.2s ease-in-out",
-  "&:hover": {
-    background: "linear-gradient(45deg, #764ba2 30%, #667eea 90%)",
-    transform: "scale(1.02)",
-    boxShadow: "0 0 15px rgba(118, 75, 162, 0.5)",
-  },
-  [theme.breakpoints.down("sm")]: {
-    height: 44,
-    fontSize: "0.95rem",
-    padding: "0 24px",
-  },
-}));
+  color: "white",
+  caretColor: NEON,
+  width: "100%",
+  padding: "12px 12px 12px 40px",
+});
 
 const Register = () => {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ username: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -155,206 +38,226 @@ const Register = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const response = await authService.register(formData);
       localStorage.setItem("token", response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
       navigate("/chat");
     } catch (err) {
-      setError(
-        err.response?.data?.error || "Registration failed. Please try again."
-      );
+      setError(err.response?.data?.error || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <BackgroundContainer>
-      {/* Background Orbs - Responsive sizing */}
-      <FloatingOrb
-        size="45vw"
-        color="#3f2b96"
-        top="-5%"
-        right="-10%"
-        animate={{ y: [0, 30, 0], x: [0, -20, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        style={{ maxWidth: "300px", maxHeight: "300px" }}
-      />
-      <FloatingOrb
-        size="50vw"
-        color="#a8c0ff"
-        bottom="-10%"
-        left="-10%"
-        animate={{ y: [0, -40, 0], x: [0, 20, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        style={{ maxWidth: "350px", maxHeight: "350px" }}
-      />
+    <div style={{ minHeight: "100vh", width: "100%", display: "flex", overflow: "hidden", fontFamily: font, backgroundColor: "#000", color: "white" }}>
 
-      <GlassCard
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+      {/* ── LEFT PANEL ── */}
+      <div
+        style={{
+          display: "none",
+          width: "50%",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          padding: "5rem",
+          position: "relative",
+          overflow: "hidden",
+          backgroundColor: "#0a0a0a",
+          borderRight: "1px solid rgba(0,255,136,0.2)",
+          backgroundImage: "linear-gradient(to right, rgba(0,255,136,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,255,136,0.07) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+        className="obsidian-left-panel"
       >
-        <Box display="flex" flexDirection="column" alignItems="center" mb={{ xs: 2.5, sm: 3 }}>
-          <motion.div
-            initial={{ rotate: 15, scale: 0.5, opacity: 0 }}
-            animate={{ rotate: 0, scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <Box
-              sx={{
-                p: { xs: 1.5, sm: 2 },
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)",
-                boxShadow: "0 0 20px rgba(168, 192, 255, 0.4)",
-                mb: { xs: 1.5, sm: 2 },
-                display: "flex",
-              }}
-            >
-              <HowToReg sx={{ fontSize: { xs: 28, sm: 32 }, color: "white" }} />
-            </Box>
-          </motion.div>
+        {[
+          { transform: "rotate(45deg) scale(1.5)" },
+          { transform: "rotate(25deg) scale(1.25)" },
+          { transform: "rotate(-15deg) scale(1.1)" },
+        ].map((s, i) => (
+          <div key={i} style={{
+            position: "absolute", top: "50%", left: "50%",
+            width: "120%", height: "120%",
+            border: `1px solid ${NEON}`,
+            opacity: 0.07, pointerEvents: "none",
+            ...s, marginTop: "-60%", marginLeft: "-60%",
+          }} />
+        ))}
 
-          <Typography
-            variant="h4"
-            fontWeight="bold"
-            sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}
-          >
-            Create Account
-          </Typography>
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ width: 48, height: 48, border: `1px solid ${NEON}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "2rem" }}>
+            <span style={{ color: NEON, fontWeight: 700, letterSpacing: "0.1em", fontSize: "1.1rem" }}>CH</span>
+          </div>
+          <p style={{ color: NEON, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase", margin: 0 }}>Compliance House</p>
+        </div>
 
-          <Typography
-            variant="body2"
-            sx={{
-              color: "rgba(255,255,255,0.6)",
-              mt: { xs: 0.75, sm: 1 },
-              textAlign: "center",
-              fontSize: { xs: "0.85rem", sm: "0.875rem" }
-            }}
-          >
-            Join us to start chatting with Rivet AI
-          </Typography>
-        </Box>
+        <div style={{ position: "relative", zIndex: 1, flexGrow: 1, display: "flex", alignItems: "center" }}>
+          <div style={{
+            fontSize: "clamp(5rem, 10vw, 14rem)",
+            fontWeight: 700, lineHeight: 1, userSelect: "none",
+            color: "transparent",
+            WebkitTextStroke: "1px rgba(0,255,136,0.15)",
+          }}>
+            NHS<br />AI
+          </div>
+        </div>
 
-        {error && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Typography
-              color="#ff6b6b"
-              sx={{
-                mb: 2,
-                textAlign: "center",
-                bgcolor: "rgba(255,0,0,0.1)",
-                p: 1,
-                borderRadius: 2,
-                border: "1px solid rgba(255,0,0,0.2)",
-                fontSize: "0.9rem",
-              }}
-            >
+        <p style={{ position: "relative", zIndex: 1, color: "#444", fontSize: "0.8rem", maxWidth: 360 }}>
+          Join the platform trusted by 10,000+ NHS compliance professionals.
+        </p>
+      </div>
+
+      {/* ── RIGHT PANEL ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "2rem", backgroundColor: "#000" }}>
+        <div style={{ width: "100%", maxWidth: 400, margin: "0 auto" }}>
+
+          {/* Mobile logo */}
+          <div style={{ marginBottom: "2.5rem" }}>
+            <div style={{ width: 40, height: 40, border: `1px solid ${NEON}`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "0.75rem" }}>
+              <span style={{ color: NEON, fontWeight: 700, letterSpacing: "0.1em" }}>CH</span>
+            </div>
+            <p style={{ color: NEON, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase", margin: 0 }}>Compliance House</p>
+          </div>
+
+          <div style={{ marginBottom: "3rem" }}>
+            <h1 style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 0.75rem" }}>Create Account</h1>
+            <p style={{ color: "#666", fontSize: "0.9rem", margin: 0 }}>Register to access the NHS AI compliance platform.</p>
+          </div>
+
+          {error && (
+            <div style={{ marginBottom: "1.5rem", padding: "0.75rem 1rem", backgroundColor: "rgba(255,0,0,0.08)", border: "1px solid rgba(255,0,0,0.25)", color: "#ff6b6b", fontSize: "0.875rem" }}>
               {error}
-            </Typography>
-          </motion.div>
-        )}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
-          <StyledTextField
-            fullWidth
-            label="Username"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Person sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                </InputAdornment>
-              ),
-            }}
-          />
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
-          <StyledTextField
-            fullWidth
-            label="Email Address"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                </InputAdornment>
-              ),
-            }}
-          />
+              {/* Username */}
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
+                  <User size={18} strokeWidth={2} />
+                </div>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="Username"
+                  required
+                  style={makeInputStyle()}
+                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
+                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
+                />
+              </div>
 
-          <StyledTextField
-            fullWidth
-            label="Password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            value={formData.password}
-            onChange={handleChange}
-            required
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                    sx={{ color: "rgba(255,255,255,0.7)", p: { xs: 1, sm: 1.5 } }}
-                  >
-                    {showPassword ? (
-                      <VisibilityOff sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                    ) : (
-                      <Visibility sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                    )}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+              {/* Email */}
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
+                  <Mail size={18} strokeWidth={2} />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="NHS Email Address"
+                  required
+                  style={makeInputStyle()}
+                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
+                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
+                />
+              </div>
 
-          <GradientButton type="submit" fullWidth disabled={loading}>
-            {loading ? "Creating Account..." : "Sign Up"}
-          </GradientButton>
+              {/* Password */}
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
+                  <Lock size={18} strokeWidth={2} />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Password"
+                  required
+                  style={{ ...makeInputStyle(), paddingRight: "40px" }}
+                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
+                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#555", display: "flex", padding: 0 }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
 
-          <Box display="flex" justifyContent="center" mt={{ xs: 2.5, sm: 3 }}>
-            <Typography
-              variant="body2"
-              sx={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: { xs: "0.85rem", sm: "0.875rem" }
-              }}
-            >
-              Already have an account?{" "}
-              <Link
-                onClick={() => navigate("/login")}
-                underline="none"
-                sx={{
-                  color: "#a8c0ff",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  transition: "0.2s",
-                  fontSize: { xs: "0.85rem", sm: "0.875rem" },
-                  "&:hover": { color: "#fff", textShadow: "0 0 10px #a8c0ff" },
-                }}
-              >
-                Log In
-              </Link>
-            </Typography>
-          </Box>
-        </form>
-      </GlassCard>
-    </BackgroundContainer>
+              {/* CTA */}
+              <div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: "100%",
+                    backgroundColor: loading ? "rgba(0,255,136,0.5)" : NEON,
+                    color: "#000",
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    letterSpacing: "0.08em",
+                    padding: "1rem",
+                    border: "none",
+                    borderRadius: 0,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    fontFamily: font,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.75rem",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = "#fff"; }}
+                  onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = NEON; }}
+                >
+                  {loading ? "CREATING ACCOUNT..." : (
+                    <><span>CREATE ACCOUNT</span><ArrowRight size={18} /></>
+                  )}
+                </button>
+
+                <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid rgba(0,255,136,0.1)", textAlign: "center" }}>
+                  <p style={{ fontSize: "0.75rem", color: "rgba(0,255,136,0.55)", letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>
+                    Already have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => navigate("/login")}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: NEON, fontFamily: font, fontSize: "inherit", letterSpacing: "inherit", textTransform: "inherit", textDecoration: "underline" }}
+                    >
+                      Sign in
+                    </button>
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <style>{`
+        @media (min-width: 1024px) {
+          .obsidian-left-panel { display: flex !important; }
+        }
+        input::placeholder { color: #444; }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+          -webkit-text-fill-color: white;
+          -webkit-box-shadow: 0 0 0px 1000px #000 inset;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
+    </div>
   );
 };
 

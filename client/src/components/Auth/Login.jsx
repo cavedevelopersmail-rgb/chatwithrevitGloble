@@ -1,485 +1,256 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  TextField,
-  Button,
-  Typography,
-  Box,
-  Link,
-  InputAdornment,
-  IconButton,
-  Grid,
-  Divider,
-  Stack,
-  CircularProgress,
-  useTheme,
-  useMediaQuery,
-  Alert,
-  Collapse,
-} from "@mui/material";
-import {
-  LockOutlined,
-  EmailOutlined,
-  Visibility,
-  VisibilityOff,
-  Google,
-  GitHub,
-  ArrowForward,
-} from "@mui/icons-material";
-import { motion } from "framer-motion";
-import { styled, alpha } from "@mui/material/styles";
+import { ArrowRight, Lock, Mail } from "lucide-react";
 import authService from "../../services/authService";
-import rivetLogo from "../../assets/rivetGlobalpng.png";
 
-// --- THEME CONSTANTS ---
-const PRIMARY_COLOR = "#3B82F6"; // Electric Blue
-const BG_DARK = "#0B0F19"; // Deep Slate
-const SURFACE_DARK = "#111827"; // Lighter Slate for cards
-const TEXT_SECONDARY = "#9CA3AF";
+const NEON = "#00ff88";
+const font = "'Space Grotesk', sans-serif";
 
-// --- STYLED COMPONENTS ---
-
-const RootContainer = styled(Box)(({ theme }) => ({
-  minHeight: "100vh",
-  height: "100dvh",
-  display: "flex",
-  backgroundColor: BG_DARK,
-  overflow: "hidden",
-  [theme.breakpoints.down("sm")]: {
-    minHeight: "100dvh",
-  },
-}));
-
-// Left Side: The Visual/Branding Area
-const BrandSection = styled(Grid)(({ theme }) => ({
-  position: "relative",
-  background: `radial-gradient(circle at 10% 20%, ${alpha(
-    PRIMARY_COLOR,
-    0.2
-  )} 0%, transparent 40%),
-               radial-gradient(circle at 90% 80%, ${alpha(
-                 "#8B5CF6",
-                 0.15
-               )} 0%, ${BG_DARK} 50%)`,
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "space-between",
-  padding: theme.spacing(6),
-  color: "white",
-  [theme.breakpoints.down("md")]: {
-    display: "none", // Hide on mobile for a cleaner look
-  },
-}));
-
-// Right Side: The Form Area
-const FormSection = styled(Grid)(({ theme }) => ({
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: SURFACE_DARK,
-  position: "relative",
-  padding: theme.spacing(4),
-  boxShadow: "-10px 0 30px rgba(0,0,0,0.2)",
-  [theme.breakpoints.down("md")]: {
-    backgroundColor: BG_DARK,
-    backgroundImage: `radial-gradient(circle at 50% 0%, ${alpha(
-      PRIMARY_COLOR,
-      0.15
-    )} 0%, transparent 50%)`,
-    padding: theme.spacing(3),
-  },
-  [theme.breakpoints.down("sm")]: {
-    padding: theme.spacing(2),
-    justifyContent: "flex-start",
-    paddingTop: theme.spacing(6),
-  },
-}));
-
-const FormWrapper = styled(motion.div)(({ theme }) => ({
-  width: "100%",
-  maxWidth: "420px",
-  padding: theme.spacing(0),
-  [theme.breakpoints.down("sm")]: {
-    maxWidth: "100%",
-    padding: theme.spacing(0, 1),
-  },
-}));
-
-// Modern Input Field Styling
-const ModernTextField = styled(TextField)(({ theme }) => ({
-  marginBottom: theme.spacing(2.5),
-  "& .MuiOutlinedInput-root": {
-    color: "white",
-    backgroundColor: alpha("#fff", 0.03),
-    borderRadius: "12px",
-    transition: "all 0.2s ease-in-out",
-    "& fieldset": {
-      borderColor: alpha("#fff", 0.1),
-    },
-    "&:hover": {
-      backgroundColor: alpha("#fff", 0.06),
-      "& fieldset": {
-        borderColor: alpha("#fff", 0.2),
-      },
-    },
-    "&.Mui-focused": {
-      backgroundColor: alpha(PRIMARY_COLOR, 0.05),
-      "& fieldset": {
-        borderColor: PRIMARY_COLOR,
-        borderWidth: "1px",
-      },
-    },
-  },
-  "& .MuiInputLabel-root": {
-    color: TEXT_SECONDARY,
-    "&.Mui-focused": {
-      color: PRIMARY_COLOR,
-    },
-  },
-  "& .MuiInputAdornment-root": {
-    color: TEXT_SECONDARY,
-  },
-}));
-
-const ActionButton = styled(Button)(({ theme }) => ({
-  backgroundColor: PRIMARY_COLOR,
-  color: "white",
-  fontWeight: 600,
+const inputStyle = {
+  backgroundColor: "transparent",
+  borderTop: "none",
+  borderLeft: "none",
+  borderRight: "none",
+  borderBottom: `1px solid rgba(0,255,136,0.3)`,
+  outline: "none",
+  borderRadius: 0,
+  fontFamily: font,
   fontSize: "1rem",
-  padding: "12px 24px",
-  borderRadius: "12px",
-  textTransform: "none",
-  boxShadow: `0 4px 14px 0 ${alpha(PRIMARY_COLOR, 0.4)}`,
-  transition: "all 0.2s ease-in-out",
-  "&:hover": {
-    backgroundColor: "#2563EB",
-    transform: "translateY(-1px)",
-    boxShadow: `0 6px 20px 0 ${alpha(PRIMARY_COLOR, 0.6)}`,
-  },
-  "&:disabled": {
-    backgroundColor: alpha(PRIMARY_COLOR, 0.3),
-    color: alpha("#fff", 0.5),
-  },
-  [theme.breakpoints.down("sm")]: {
-    fontSize: "0.95rem",
-    padding: "11px 20px",
-  },
-}));
-
-const SocialButton = styled(Button)(({ theme }) => ({
-  borderColor: alpha("#fff", 0.15),
   color: "white",
-  textTransform: "none",
-  borderRadius: "10px",
-  padding: "10px",
-  fontSize: "0.9rem",
-  fontWeight: 500,
-  "&:hover": {
-    borderColor: alpha("#fff", 0.3),
-    backgroundColor: alpha("#fff", 0.05),
-  },
-}));
-
-// --- COMPONENT ---
+  caretColor: NEON,
+  width: "100%",
+  padding: "12px 12px 12px 40px",
+};
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const theme = useTheme();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError("");
-  };
+  const clearError = () => { if (error) setError(""); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
-    // Simulate network delay for UX (remove in production if desired)
-    // await new Promise((resolve) => setTimeout(resolve, 1000));
-
     try {
-      const response = await authService.login(formData);
+      const response = await authService.login({ email, password });
       localStorage.setItem("token", response.token);
       localStorage.setItem("user", JSON.stringify(response.user));
       navigate("/chat");
     } catch (err) {
-      setError(err.response?.data?.error || "Invalid email or password.");
+      setError(err.response?.data?.error || "Authentication failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <RootContainer>
-      <Grid container sx={{ height: "100%" }}>
-        {/* --- LEFT SIDE: BRANDING (Desktop Only) --- */}
-        <BrandSection item md={6} lg={7}>
-          {/* Logo / Top area */}
-          <Box>
-            <Stack direction="row" alignItems="center" gap={1}>
-              <Box
-                component="img"
-                src={rivetLogo}
-                alt="Rivet Global"
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: "8px",
-                  objectFit: "cover",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  backgroundColor: "rgba(255,255,255,0.05)",
-                  p: 0.5,
-                }}
-              />
-              <Typography variant="h5" fontWeight="700" letterSpacing={1}>
-                Rivet <span style={{ color: PRIMARY_COLOR }}>AI</span>
-              </Typography>
-            </Stack>
-          </Box>
+    <div style={{ minHeight: "100vh", width: "100%", display: "flex", overflow: "hidden", fontFamily: font, backgroundColor: "#000", color: "white" }}>
 
-          {/* Middle Content */}
-          <Box sx={{ maxWidth: "500px", mb: { xs: 4, md: 8 } }}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <Typography
-                variant="h2"
-                fontWeight="800"
-                sx={{
-                  mb: 2,
-                  lineHeight: 1.2,
-                  fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" }
-                }}
-              >
-                U Turn To Smart <br />
-                <span
+      {/* ── LEFT PANEL ── */}
+      <div style={{
+        display: "none",
+        width: "50%",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: "5rem",
+        position: "relative",
+        overflow: "hidden",
+        backgroundColor: "#0a0a0a",
+        borderRight: `1px solid rgba(0,255,136,0.2)`,
+        backgroundImage: "linear-gradient(to right, rgba(0,255,136,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,255,136,0.07) 1px, transparent 1px)",
+        backgroundSize: "40px 40px",
+      }}
+        className="obsidian-left-panel"
+      >
+        {/* Geometric shapes */}
+        {[
+          { transform: "rotate(45deg) scale(1.5)" },
+          { transform: "rotate(25deg) scale(1.25)" },
+          { transform: "rotate(-15deg) scale(1.1)" },
+        ].map((s, i) => (
+          <div key={i} style={{
+            position: "absolute",
+            top: "50%", left: "50%",
+            width: "120%", height: "120%",
+            border: `1px solid ${NEON}`,
+            opacity: 0.07,
+            pointerEvents: "none",
+            ...s,
+            marginTop: "-60%",
+            marginLeft: "-60%",
+          }} />
+        ))}
+
+        {/* Logo */}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ width: 48, height: 48, border: `1px solid ${NEON}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "2rem" }}>
+            <span style={{ color: NEON, fontWeight: 700, letterSpacing: "0.1em", fontSize: "1.1rem" }}>CH</span>
+          </div>
+          <p style={{ color: NEON, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase" }}>Compliance House</p>
+        </div>
+
+        {/* Hero text */}
+        <div style={{ position: "relative", zIndex: 1, flexGrow: 1, display: "flex", alignItems: "center" }}>
+          <div style={{
+            fontSize: "clamp(5rem, 10vw, 14rem)",
+            fontWeight: 700,
+            lineHeight: 1,
+            userSelect: "none",
+            color: "transparent",
+            WebkitTextStroke: `1px rgba(0,255,136,0.15)`,
+          }}>
+            NHS<br />AI
+          </div>
+        </div>
+
+        <p style={{ position: "relative", zIndex: 1, color: "#444", fontSize: "0.8rem", maxWidth: 360 }}>
+          System version 2.4.1. Secure access for authorised National Health Service personnel only.
+        </p>
+      </div>
+
+      {/* ── RIGHT PANEL ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "2rem", backgroundColor: "#000" }}>
+        <div style={{ width: "100%", maxWidth: 400, margin: "0 auto" }}>
+
+          {/* Mobile logo */}
+          <div style={{ marginBottom: "3rem" }}>
+            <div style={{ width: 40, height: 40, border: `1px solid ${NEON}`, display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem" }}>
+              <span style={{ color: NEON, fontWeight: 700, letterSpacing: "0.1em" }}>CH</span>
+            </div>
+            <p style={{ color: NEON, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.3em", textTransform: "uppercase", marginTop: 0 }}>Compliance House</p>
+          </div>
+
+          <div style={{ marginBottom: "3.5rem" }}>
+            <h1 style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 0.75rem" }}>System Access</h1>
+            <p style={{ color: "#666", fontSize: "0.9rem", margin: 0 }}>Enter your credentials to access the secure NHS compliance environment.</p>
+          </div>
+
+          {error && (
+            <div style={{ marginBottom: "2rem", padding: "0.75rem 1rem", backgroundColor: "rgba(255,0,0,0.08)", border: "1px solid rgba(255,0,0,0.25)", color: "#ff6b6b", fontSize: "0.875rem" }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+
+              {/* Email */}
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
+                  <Mail size={18} strokeWidth={2} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); clearError(); }}
+                  placeholder="NHS Email Address"
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
+                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
+                />
+              </div>
+
+              {/* Password */}
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", color: "#555", display: "flex" }}>
+                  <Lock size={18} strokeWidth={2} />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); clearError(); }}
+                  placeholder="Password"
+                  required
+                  style={inputStyle}
+                  onFocus={(e) => (e.target.style.borderBottomColor = NEON)}
+                  onBlur={(e) => (e.target.style.borderBottomColor = "rgba(0,255,136,0.3)")}
+                />
+              </div>
+
+              {/* Extras row */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                  <input type="checkbox" style={{ accentColor: NEON, width: 14, height: 14 }} />
+                  <span style={{ fontSize: "0.75rem", color: "#666" }}>Remember device</span>
+                </label>
+                <button type="button" style={{ background: "none", border: "none", cursor: "pointer", color: NEON, fontSize: "0.75rem", fontFamily: font }}
+                  onMouseEnter={(e) => (e.target.style.color = "#fff")}
+                  onMouseLeave={(e) => (e.target.style.color = NEON)}
+                >
+                  Recover access
+                </button>
+              </div>
+
+              {/* CTA */}
+              <div>
+                <button
+                  type="submit"
+                  disabled={loading}
                   style={{
-                    background: "linear-gradient(90deg, #3B82F6, #8B5CF6)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
+                    width: "100%",
+                    backgroundColor: loading ? "rgba(0,255,136,0.5)" : NEON,
+                    color: "#000",
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    letterSpacing: "0.08em",
+                    padding: "1rem",
+                    border: "none",
+                    borderRadius: 0,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    fontFamily: font,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.75rem",
+                    transition: "background-color 0.2s",
                   }}
+                  onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = "#fff"; }}
+                  onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = NEON; }}
                 >
-                  intelligence.
-                </span>
-              </Typography>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: TEXT_SECONDARY,
-                  fontWeight: 400,
-                  fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" }
-                }}
-              >
-                Experience the next generation Ai Assistant Secure, fast, and
-                responsive.
-              </Typography>
-            </motion.div>
-          </Box>
+                  {loading ? "AUTHENTICATING..." : (
+                    <><span>AUTHENTICATE</span><ArrowRight size={18} /></>
+                  )}
+                </button>
 
-          {/* Bottom Footer */}
-          <Box>
-            <Typography variant="caption" sx={{ color: alpha("#fff", 0.4) }}>
-              © 2025 Rivet AI Inc. All rights reserved.
-            </Typography>
-          </Box>
-        </BrandSection>
+                <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid rgba(0,255,136,0.1)", textAlign: "center" }}>
+                  <p style={{ fontSize: "0.75rem", color: "rgba(0,255,136,0.55)", letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>
+                    No account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => navigate("/register")}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: NEON, fontFamily: font, fontSize: "inherit", letterSpacing: "inherit", textTransform: "inherit", textDecoration: "underline" }}
+                    >
+                      Register here
+                    </button>
+                  </p>
+                </div>
+              </div>
 
-        {/* --- RIGHT SIDE: FORM --- */}
-        <FormSection item xs={12} md={6} lg={5}>
-          <FormWrapper
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
-            <Box mb={{ xs: 3, sm: 4 }} textAlign={{ xs: "center", sm: "left" }}>
-              <Typography
-                variant="h4"
-                fontWeight="700"
-                color="white"
-                gutterBottom
-                sx={{ fontSize: { xs: "1.75rem", sm: "2.125rem" } }}
-              >
-                Welcome back
-              </Typography>
-              <Typography
-                variant="body1"
-                color={TEXT_SECONDARY}
-                sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}
-              >
-                Please enter your details to sign in.
-              </Typography>
-            </Box>
+            </div>
+          </form>
+        </div>
+      </div>
 
-            {/* ERROR ALERT */}
-            <Collapse in={!!error}>
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 3,
-                  borderRadius: "10px",
-                  backgroundColor: alpha("#EF4444", 0.1),
-                  color: "#FCA5A5",
-                  border: `1px solid ${alpha("#EF4444", 0.2)}`,
-                }}
-              >
-                {error}
-              </Alert>
-            </Collapse>
-
-            <form onSubmit={handleSubmit}>
-              <ModernTextField
-                fullWidth
-                label="Email address"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailOutlined sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiInputBase-input": {
-                    fontSize: { xs: "0.95rem", sm: "1rem" },
-                  },
-                }}
-              />
-
-              <ModernTextField
-                fullWidth
-                label="Password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={handleChange}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockOutlined sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        sx={{ color: TEXT_SECONDARY, p: { xs: 1, sm: 1.5 } }}
-                      >
-                        {showPassword ? (
-                          <VisibilityOff sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                        ) : (
-                          <Visibility sx={{ fontSize: { xs: 18, sm: 20 } }} />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiInputBase-input": {
-                    fontSize: { xs: "0.95rem", sm: "1rem" },
-                  },
-                }}
-              />
-
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                mb={{ xs: 2.5, sm: 3 }}
-              >
-                <Box />
-                <Link
-                  href="#"
-                  underline="hover"
-                  sx={{
-                    color: PRIMARY_COLOR,
-                    fontWeight: 500,
-                    fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                  }}
-                >
-                  Forgot password?
-                </Link>
-              </Box>
-
-              <ActionButton
-                fullWidth
-                type="submit"
-                disabled={loading}
-                endIcon={!loading && <ArrowForward />}
-              >
-                {loading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  "Sign in"
-                )}
-              </ActionButton>
-            </form>
-
-            {/* <Box mt={4} mb={3}>
-              <Divider
-                sx={{
-                  "&::before, &::after": { borderColor: alpha("#fff", 0.1) },
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: TEXT_SECONDARY, px: 1 }}
-                >
-                  OR CONTINUE WITH
-                </Typography>
-              </Divider>
-            </Box> */}
-
-            {/* <Stack direction="row" spacing={2} mb={4}>
-              <SocialButton fullWidth variant="outlined" startIcon={<Google />}>
-                Google
-              </SocialButton>
-              <SocialButton fullWidth variant="outlined" startIcon={<GitHub />}>
-                GitHub
-              </SocialButton>
-            </Stack> */}
-
-            <Box textAlign="center">
-              <Typography
-                variant="body2"
-                color={TEXT_SECONDARY}
-                sx={{ fontSize: { xs: "0.85rem", sm: "0.875rem" } }}
-              >
-                Don't have an account?{" "}
-                <Link
-                  component="button"
-                  onClick={() => navigate("/register")}
-                  sx={{
-                    color: "white",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    cursor: "pointer",
-                    fontSize: { xs: "0.85rem", sm: "0.875rem" },
-                    "&:hover": { textDecoration: "underline" },
-                  }}
-                >
-                  Create an account
-                </Link>
-              </Typography>
-            </Box>
-          </FormWrapper>
-        </FormSection>
-      </Grid>
-    </RootContainer>
+      {/* CSS for large-screen split */}
+      <style>{`
+        @media (min-width: 1024px) {
+          .obsidian-left-panel { display: flex !important; }
+        }
+        input::placeholder { color: #444; }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+          -webkit-text-fill-color: white;
+          -webkit-box-shadow: 0 0 0px 1000px #000 inset;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
+    </div>
   );
 };
 

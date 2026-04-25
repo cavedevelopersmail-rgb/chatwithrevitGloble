@@ -39,6 +39,16 @@ server/         # Express backend (port 8000)
 - Frontend uses `VITE_API_URL` env var (defaults to `http://localhost:3010/api` fallback, but proxy handles dev routing)
 - `allowedHosts: true` in Vite config for Replit iframe proxy compatibility
 
+## UI Design — Obsidian Theme
+All three main views (Login, Register, Chat) use the **Obsidian** design system:
+- **Palette**: Pure black (`#000000` / `#0a0a0a`) backgrounds, neon green (`#00ff88`) accents
+- **Typography**: Space Grotesk (loaded via Google Fonts in `client/index.html`)
+- **Layout**: Asymmetric split-screen on desktop — left panel shows neon grid + geometric NHS/AI text; right panel hosts the form
+- **Inputs**: Borderless (bottom-border only), no border radius, neon focus states
+- **Buttons**: Sharp-cornered neon green CTA, transitions to white on hover
+- **Icons**: `lucide-react` package (Mail, Lock, User, ArrowRight, Eye/EyeOff)
+- **Chat**: Black sidebar with neon grid, user bubbles in neon green, AI bubbles in `#0d0d0d` with neon border, input bar with sharp neon focus ring
+
 ## AI Agent
 The "Compliance House" agent is configured in `server/controllers/chatController.js`:
 - Uses `gpt-4o` model
