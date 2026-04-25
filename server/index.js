@@ -8,7 +8,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const conversationRoutes = require("./routes/conversationRoutes");
 
 const app = express();
-const port = process.env.PORT || 3010;
+const port = process.env.PORT || 8000;
 
 app.use(cors());
 app.use(express.json());
