@@ -1,44 +1,23 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import authService from "../../services/authService";
 import rivetLogo from "../../assets/rivetGlobalpng.png";
 
-const C = {
-  bg: "#0c1117",
-  surface: "#131929",
-  card: "#1a2234",
-  border: "#1e2d45",
-  accent: "#5b8dee",
-  accentHover: "#4a7de0",
-  text: "#f1f5f9",
-  muted: "#64748b",
-  error: "#f87171",
-};
-
 const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
-const inputStyle = {
+const fieldStyle = {
   width: "100%",
-  padding: "10px 14px",
-  backgroundColor: C.card,
-  border: `1px solid ${C.border}`,
-  borderRadius: "8px",
-  color: C.text,
-  fontSize: "0.95rem",
+  padding: "11px 14px 11px 40px",
+  backgroundColor: "#f0f5ff",
+  border: "1.5px solid #e5e7eb",
+  borderRadius: "10px",
+  fontSize: "0.9rem",
   fontFamily: font,
+  color: "#111827",
   outline: "none",
-  transition: "border-color 0.2s",
+  transition: "border-color 0.2s, box-shadow 0.2s",
   boxSizing: "border-box",
-};
-
-const labelStyle = {
-  display: "block",
-  fontSize: "0.8rem",
-  fontWeight: 500,
-  color: C.muted,
-  marginBottom: "6px",
-  letterSpacing: "0.02em",
 };
 
 const Register = () => {
@@ -52,6 +31,9 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError("");
   };
+
+  const focusStyle = (e) => { e.target.style.borderColor = "#3b82f6"; e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.15)"; };
+  const blurStyle = (e) => { e.target.style.borderColor = "#e5e7eb"; e.target.style.boxShadow = "none"; };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,29 +52,77 @@ const Register = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: C.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font, padding: "1rem" }}>
-      <div style={{ width: "100%", maxWidth: 420 }}>
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #dbeafe 0%, #ede9fe 40%, #fce7f3 100%)",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: font,
+      padding: "1rem",
+      position: "relative",
+    }}>
 
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "2.5rem", justifyContent: "center" }}>
-          <img src={rivetLogo} alt="Rivet AI" style={{ width: 36, height: 36, borderRadius: "8px", objectFit: "cover" }} />
-          <span style={{ color: C.text, fontWeight: 700, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>Rivet AI</span>
+      {/* Back link */}
+      <div style={{ position: "absolute", top: "24px", left: "24px" }}>
+        <button
+          onClick={() => navigate("/")}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#374151", fontFamily: font, fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <ArrowLeft size={16} />
+          Back to Home
+        </button>
+      </div>
+
+      {/* Card */}
+      <div style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "20px",
+        boxShadow: "0 10px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
+        padding: "2.5rem 2.25rem",
+        width: "100%",
+        maxWidth: "420px",
+      }}>
+
+        {/* App icon */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.5rem" }}>
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: "16px",
+            background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 16px rgba(59,130,246,0.4)",
+          }}>
+            <img src={rivetLogo} alt="Rivet AI" style={{ width: 38, height: 38, objectFit: "cover", borderRadius: "8px" }} />
+          </div>
         </div>
 
-        {/* Card */}
-        <div style={{ backgroundColor: C.surface, border: `1px solid ${C.border}`, borderRadius: "12px", padding: "2rem" }}>
-          <h1 style={{ color: C.text, fontSize: "1.5rem", fontWeight: 700, margin: "0 0 0.4rem", letterSpacing: "-0.02em" }}>Create account</h1>
-          <p style={{ color: C.muted, fontSize: "0.875rem", margin: "0 0 1.75rem" }}>Join the NHS compliance platform</p>
+        {/* Heading */}
+        <h1 style={{ textAlign: "center", fontSize: "1.6rem", fontWeight: 700, color: "#111827", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+          Create Account
+        </h1>
+        <p style={{ textAlign: "center", fontSize: "0.9rem", color: "#6b7280", margin: "0 0 2rem" }}>
+          Join the NHS compliance platform
+        </p>
 
-          {error && (
-            <div style={{ backgroundColor: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: "8px", padding: "10px 14px", color: C.error, fontSize: "0.875rem", marginBottom: "1.25rem" }}>
-              {error}
-            </div>
-          )}
+        {error && (
+          <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "10px 14px", color: "#ef4444", fontSize: "0.875rem", marginBottom: "1.25rem", textAlign: "center" }}>
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: "1.25rem" }}>
-              <label style={labelStyle}>Username</label>
+        <form onSubmit={handleSubmit}>
+          {/* Username */}
+          <div style={{ marginBottom: "1rem" }}>
+            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "6px" }}>Username</label>
+            <div style={{ position: "relative" }}>
+              <div style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", display: "flex" }}>
+                <User size={16} />
+              </div>
               <input
                 type="text"
                 name="username"
@@ -100,14 +130,20 @@ const Register = () => {
                 onChange={handleChange}
                 placeholder="john_smith"
                 required
-                style={inputStyle}
-                onFocus={(e) => (e.target.style.borderColor = C.accent)}
-                onBlur={(e) => (e.target.style.borderColor = C.border)}
+                style={fieldStyle}
+                onFocus={focusStyle}
+                onBlur={blurStyle}
               />
             </div>
+          </div>
 
-            <div style={{ marginBottom: "1.25rem" }}>
-              <label style={labelStyle}>Email address</label>
+          {/* Email */}
+          <div style={{ marginBottom: "1rem" }}>
+            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "6px" }}>Email Address</label>
+            <div style={{ position: "relative" }}>
+              <div style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", display: "flex" }}>
+                <Mail size={16} />
+              </div>
               <input
                 type="email"
                 name="email"
@@ -115,81 +151,85 @@ const Register = () => {
                 onChange={handleChange}
                 placeholder="you@nhsorg.co.uk"
                 required
-                style={inputStyle}
-                onFocus={(e) => (e.target.style.borderColor = C.accent)}
-                onBlur={(e) => (e.target.style.borderColor = C.border)}
+                style={fieldStyle}
+                onFocus={focusStyle}
+                onBlur={blurStyle}
               />
             </div>
+          </div>
 
-            <div style={{ marginBottom: "1.75rem" }}>
-              <label style={labelStyle}>Password</label>
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                  style={{ ...inputStyle, paddingRight: "44px" }}
-                  onFocus={(e) => (e.target.style.borderColor = C.accent)}
-                  onBlur={(e) => (e.target.style.borderColor = C.border)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", alignItems: "center", padding: 0 }}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+          {/* Password */}
+          <div style={{ marginBottom: "1.5rem" }}>
+            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: "6px" }}>Password</label>
+            <div style={{ position: "relative" }}>
+              <div style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", display: "flex" }}>
+                <Lock size={16} />
               </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••••••"
+                required
+                style={{ ...fieldStyle, paddingRight: "42px" }}
+                onFocus={focusStyle}
+                onBlur={blurStyle}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", display: "flex", alignItems: "center", padding: 0 }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: "100%",
-                padding: "11px",
-                backgroundColor: loading ? `${C.accent}99` : C.accent,
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: "0.95rem",
-                border: "none",
-                borderRadius: "8px",
-                cursor: loading ? "not-allowed" : "pointer",
-                fontFamily: font,
-                transition: "background-color 0.15s",
-              }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.backgroundColor = C.accentHover; }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.backgroundColor = C.accent; }}
-            >
-              {loading ? "Creating account..." : "Create account"}
-            </button>
-          </form>
+          {/* Submit button */}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "12px",
+              background: loading ? "linear-gradient(135deg, #93c5fd, #60a5fa)" : "linear-gradient(135deg, #3b82f6, #2563eb)",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: "1rem",
+              border: "none",
+              borderRadius: "10px",
+              cursor: loading ? "not-allowed" : "pointer",
+              fontFamily: font,
+              boxShadow: "0 4px 12px rgba(37,99,235,0.35)",
+              transition: "opacity 0.15s",
+              letterSpacing: "0.01em",
+            }}
+            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.opacity = "0.92"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+          >
+            {loading ? "Creating account..." : "Sign Up"}
+          </button>
+        </form>
 
-          <p style={{ color: C.muted, fontSize: "0.85rem", textAlign: "center", marginTop: "1.5rem", marginBottom: 0 }}>
-            Already have an account?{" "}
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: C.accent, fontFamily: font, fontSize: "inherit", fontWeight: 500 }}
-            >
-              Sign in
-            </button>
-          </p>
-        </div>
-
-        <p style={{ color: C.muted, fontSize: "0.75rem", textAlign: "center", marginTop: "1.5rem" }}>
-          NHS Compliance Platform · Secure Access
+        {/* Login link */}
+        <p style={{ textAlign: "center", marginTop: "1.25rem", marginBottom: 0, fontSize: "0.875rem", color: "#6b7280" }}>
+          Already have an account?{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", fontFamily: font, fontSize: "inherit", fontWeight: 600 }}
+          >
+            Sign in
+          </button>
         </p>
       </div>
 
       <style>{`
-        input::placeholder { color: #374151; }
+        input::placeholder { color: #9ca3af; }
         input:-webkit-autofill, input:-webkit-autofill:focus {
-          -webkit-text-fill-color: ${C.text};
-          -webkit-box-shadow: 0 0 0px 1000px ${C.card} inset;
+          -webkit-text-fill-color: #111827;
+          -webkit-box-shadow: 0 0 0px 1000px #f0f5ff inset;
         }
       `}</style>
     </div>
