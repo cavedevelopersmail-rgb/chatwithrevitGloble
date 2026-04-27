@@ -18,8 +18,21 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
     minlength: 6,
+    default: null,
+  },
+  googleId: {
+    type: String,
+    default: null,
+  },
+  authProvider: {
+    type: String,
+    enum: ["local", "google"],
+    default: "local",
+  },
+  picture: {
+    type: String,
+    default: null,
   },
   createdAt: {
     type: Date,
@@ -27,27 +40,15 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// --- FIX STARTS HERE ---
-// 1. Remove 'next' from the parameters
 userSchema.pre("save", async function () {
   const user = this;
-
-  // 2. If password isn't modified, simply return (the Promise resolves automatically)
-  if (!user.isModified("password")) {
-    return;
-  }
-
-  // 3. No try/catch needed for 'next'. If this fails, the Promise rejects
-  // and Mongoose passes the error to the controller automatically.
+  if (!user.isModified("password") || !user.password) return;
   const salt = await bcrypt.genSalt(10);
-  const hash = await bcrypt.hash(user.password, salt);
-  user.password = hash;
-
-  // 4. Do NOT call next(). The function ending signifies success.
+  user.password = await bcrypt.hash(user.password, salt);
 });
-// --- FIX ENDS HERE ---
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

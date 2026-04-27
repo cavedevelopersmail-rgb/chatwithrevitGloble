@@ -1,5 +1,8 @@
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -74,6 +77,70 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: "Server error during login" });
+  }
+};
+
+exports.googleAuth = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: "Google credential is required" });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ error: "Google OAuth is not configured on this server" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    let user = await User.findOne({ googleId });
+
+    if (!user) {
+      user = await User.findOne({ email });
+      if (user) {
+        user.googleId = googleId;
+        user.authProvider = "google";
+        user.picture = picture;
+        await user.save();
+      } else {
+        const baseUsername = (name || email.split("@")[0]).replace(/\s+/g, "").toLowerCase();
+        let username = baseUsername;
+        let suffix = 1;
+        while (await User.findOne({ username })) {
+          username = `${baseUsername}${suffix++}`;
+        }
+        user = new User({
+          username,
+          email,
+          googleId,
+          authProvider: "google",
+          picture,
+          password: null,
+        });
+        await user.save();
+      }
+    }
+
+    const token = generateToken(user._id);
+    res.json({
+      message: "Google login successful",
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        picture: user.picture,
+      },
+    });
+  } catch (error) {
+    console.error("Google auth error:", error);
+    res.status(401).json({ error: "Invalid Google credential" });
   }
 };
 
