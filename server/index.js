@@ -15,13 +15,31 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("static"));
 
+// Serve built Vite frontend in production
+const clientDist = resolve(__dirname, "../client/dist");
+app.use(express.static(clientDist));
+
 app.get("/", (req, res) => {
-  res.sendFile(resolve(__dirname, "pages/index.html"));
+  const indexHtml = resolve(clientDist, "index.html");
+  const fallback = resolve(__dirname, "pages/index.html");
+  const fs = require("fs");
+  res.sendFile(fs.existsSync(indexHtml) ? indexHtml : fallback);
 });
 
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/conversations", conversationRoutes);
+
+// SPA fallback — all non-API routes serve the React app
+app.get("*", (req, res) => {
+  const fs = require("fs");
+  const indexHtml = resolve(clientDist, "index.html");
+  if (fs.existsSync(indexHtml)) {
+    res.sendFile(indexHtml);
+  } else {
+    res.sendFile(resolve(__dirname, "pages/index.html"));
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
