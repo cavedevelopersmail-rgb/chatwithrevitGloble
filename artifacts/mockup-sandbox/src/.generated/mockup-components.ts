@@ -3,5 +3,8 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/chat-app-ui/Aurora.tsx": () => import("../components/mockups/chat-app-ui/Aurora.tsx"),
   "./components/mockups/chat-app-ui/Nebula.tsx": () => import("../components/mockups/chat-app-ui/Nebula.tsx"),
-  "./components/mockups/chat-app-ui/Obsidian.tsx": () => import("../components/mockups/chat-app-ui/Obsidian.tsx")
+  "./components/mockups/chat-app-ui/Obsidian.tsx": () => import("../components/mockups/chat-app-ui/Obsidian.tsx"),
+  "./components/mockups/login-usability/Accessibility.tsx": () => import("../components/mockups/login-usability/Accessibility.tsx"),
+  "./components/mockups/login-usability/Hierarchy.tsx": () => import("../components/mockups/login-usability/Hierarchy.tsx"),
+  "./components/mockups/login-usability/Interaction.tsx": () => import("../components/mockups/login-usability/Interaction.tsx")
 };
