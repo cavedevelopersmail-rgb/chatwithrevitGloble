@@ -33,7 +33,6 @@ import {
   FindInPage,
   VerifiedUser,
   ArrowForward,
-  ChatBubbleOutline,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import authService from "../../services/authService";
@@ -632,36 +631,6 @@ const Chat = () => {
                     })}
                   </div>
 
-                  {/* Skip the guide */}
-                  <button
-                    type="button"
-                    onClick={focusInput}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "8px 16px",
-                      borderRadius: "999px",
-                      backgroundColor: "transparent",
-                      border: "none",
-                      color: C.mutedLight,
-                      fontSize: "0.82rem",
-                      fontFamily: font,
-                      cursor: "pointer",
-                      transition: "background-color 0.2s, color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = C.card;
-                      e.currentTarget.style.color = C.text;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = C.mutedLight;
-                    }}
-                  >
-                    <ChatBubbleOutline sx={{ fontSize: 14, opacity: 0.8 }} />
-                    <span>Or skip the guide and ask freely</span>
-                  </button>
                 </div>
               </motion.div>
             )}
