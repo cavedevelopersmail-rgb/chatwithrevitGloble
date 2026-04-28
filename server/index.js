@@ -1,4 +1,35 @@
 require("dotenv").config();
+
+// ── Environment validation ─────────────────────────────────────────────
+// Fail fast with a clear message if required env vars are missing, rather
+// than crashing later with a cryptic stack trace. See .env.example for docs.
+(function validateEnv() {
+  const required = {
+    MONGODB_URI: "MongoDB connection string",
+    JWT_SECRET: "Secret used to sign JWT auth tokens",
+  };
+  const missing = Object.entries(required)
+    .filter(([key]) => !process.env[key])
+    .map(([key, desc]) => `  - ${key}  (${desc})`);
+
+  // Gemini key has two accepted names — accept either.
+  if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
+    missing.push("  - GEMINI_API_KEY (or GOOGLE_API_KEY)  — Google Gemini API key, powers chat & projects");
+  }
+
+  if (missing.length) {
+    console.error("\n[startup] Missing required environment variables:");
+    console.error(missing.join("\n"));
+    console.error("\nCopy server/.env.example to server/.env and fill in values, ");
+    console.error("or set them in your hosting provider's secrets pane.\n");
+    process.exit(1);
+  }
+
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    console.warn("[startup] GOOGLE_CLIENT_ID not set — \"Continue with Google\" sign-in will be disabled.");
+  }
+})();
+
 const express = require("express");
 const { resolve } = require("path");
 const cors = require("cors");
