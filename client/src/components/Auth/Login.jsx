@@ -105,26 +105,32 @@ const Login = () => {
   };
 
   return (
-    <div style={{
+    <div className="auth-page" style={{
       minHeight: "100vh",
       background: "linear-gradient(135deg, #dbeafe 0%, #ede9fe 40%, #fce7f3 100%)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "center",
+      justifyContent: "flex-start",
       fontFamily: font,
-      padding: "1.5rem",
+      padding: "72px 1rem 2rem",
       position: "relative",
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      boxSizing: "border-box",
     }}>
 
       {/* Back link */}
-      <div style={{ position: "absolute", top: "24px", left: "24px" }}>
+      <div style={{ position: "absolute", top: "20px", left: "20px", zIndex: 10 }}>
         <button
           onClick={() => navigate("/")}
           style={{
-            background: "none", border: "none", cursor: "pointer",
-            color: "#374151", fontFamily: font, fontSize: "0.875rem",
+            background: "rgba(255,255,255,0.6)",
+            backdropFilter: "blur(8px)",
+            border: "none", cursor: "pointer",
+            color: "#374151", fontFamily: font, fontSize: "0.85rem",
             display: "flex", alignItems: "center", gap: "6px",
+            padding: "8px 12px", borderRadius: 8,
           }}
         >
           <ArrowLeft size={16} />
@@ -133,13 +139,15 @@ const Login = () => {
       </div>
 
       {/* Card */}
-      <div style={{
+      <div className="auth-card" style={{
         background: "#fff",
         borderRadius: "20px",
         boxShadow: "0 12px 48px rgba(0,0,0,0.10)",
-        padding: "36px 32px",
+        padding: "32px 28px",
         width: "100%",
         maxWidth: 440,
+        margin: "auto 0",
+        boxSizing: "border-box",
       }}>
 
         {/* App icon */}
@@ -362,6 +370,13 @@ const Login = () => {
         input:-webkit-autofill, input:-webkit-autofill:focus {
           -webkit-text-fill-color: #111827;
           -webkit-box-shadow: 0 0 0px 1000px #f9fafb inset;
+        }
+        @media (max-width: 480px) {
+          .auth-page { padding: 64px 0.75rem 1.5rem !important; }
+          .auth-card { padding: 24px 20px !important; border-radius: 16px !important; }
+        }
+        @media (max-height: 720px) {
+          .auth-card { margin: 0 0 !important; }
         }
       `}</style>
     </div>

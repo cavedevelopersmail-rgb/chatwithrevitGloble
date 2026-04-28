@@ -52,23 +52,33 @@ const Register = () => {
   };
 
   return (
-    <div style={{
+    <div className="auth-page" style={{
       minHeight: "100vh",
       background: "linear-gradient(135deg, #dbeafe 0%, #ede9fe 40%, #fce7f3 100%)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "center",
+      justifyContent: "flex-start",
       fontFamily: font,
-      padding: "1rem",
+      padding: "72px 1rem 2rem",
       position: "relative",
+      overflowY: "auto",
+      WebkitOverflowScrolling: "touch",
+      boxSizing: "border-box",
     }}>
 
       {/* Back link */}
-      <div style={{ position: "absolute", top: "24px", left: "24px" }}>
+      <div style={{ position: "absolute", top: "20px", left: "20px", zIndex: 10 }}>
         <button
           onClick={() => navigate("/")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#374151", fontFamily: font, fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "6px" }}
+          style={{
+            background: "rgba(255,255,255,0.6)",
+            backdropFilter: "blur(8px)",
+            border: "none", cursor: "pointer",
+            color: "#374151", fontFamily: font, fontSize: "0.85rem",
+            display: "flex", alignItems: "center", gap: "6px",
+            padding: "8px 12px", borderRadius: 8,
+          }}
         >
           <ArrowLeft size={16} />
           Back to Home
@@ -76,13 +86,15 @@ const Register = () => {
       </div>
 
       {/* Card */}
-      <div style={{
+      <div className="auth-card" style={{
         backgroundColor: "#ffffff",
         borderRadius: "20px",
         boxShadow: "0 10px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06)",
-        padding: "2.5rem 2.25rem",
+        padding: "2.25rem 2rem",
         width: "100%",
         maxWidth: "420px",
+        margin: "auto 0",
+        boxSizing: "border-box",
       }}>
 
         {/* App icon */}
@@ -230,6 +242,13 @@ const Register = () => {
         input:-webkit-autofill, input:-webkit-autofill:focus {
           -webkit-text-fill-color: #111827;
           -webkit-box-shadow: 0 0 0px 1000px #f0f5ff inset;
+        }
+        @media (max-width: 480px) {
+          .auth-page { padding: 64px 0.75rem 1.5rem !important; }
+          .auth-card { padding: 1.5rem 1.25rem !important; border-radius: 16px !important; }
+        }
+        @media (max-height: 720px) {
+          .auth-card { margin: 0 0 !important; }
         }
       `}</style>
     </div>
