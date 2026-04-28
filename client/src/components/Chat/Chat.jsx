@@ -59,8 +59,8 @@ const C = {
 const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
 const NAV_ITEMS = [
-  { icon: <ChatBubbleIcon sx={{ fontSize: 18 }} />, label: "Conversations", id: "chat" },
-  { icon: <BarChart sx={{ fontSize: 18 }} />, label: "Analytics", id: "analytics", soon: true },
+  { icon: <ChatBubbleIcon sx={{ fontSize: 18 }} />, label: "Conversations", id: "chat", path: "/chat" },
+  { icon: <BarChart sx={{ fontSize: 18 }} />, label: "Dashboard", id: "dashboard", path: "/dashboard" },
   { icon: <Assignment sx={{ fontSize: 18 }} />, label: "Compliance", id: "compliance", soon: true },
 ];
 
@@ -266,6 +266,7 @@ const Chat = () => {
         {NAV_ITEMS.map((item) => (
           <div
             key={item.id}
+            onClick={() => { if (item.path) navigate(item.path); }}
             style={{
               display: "flex",
               alignItems: "center",
@@ -455,19 +456,6 @@ const Chat = () => {
         {/* ── MAIN CONTENT ── */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-          {/* Page header */}
-          <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-            <h1 style={{ color: C.text, fontSize: "1.25rem", fontWeight: 700, margin: "0 0 14px", letterSpacing: "-0.02em" }}>Conversations</h1>
-
-            {/* Stats row — matching reference layout */}
-            <div style={{ display: "flex", gap: "12px" }}>
-              <StatCard label="Total messages" value={totalMessages} />
-              <StatCard label="Conversations" value={totalConversations} />
-              <StatCard label="AI Model" value="GPT-4o" />
-              <StatCard label="Status" value={<span style={{ color: "#34d399", fontSize: "1rem" }}>●&nbsp;Live</span>} />
-            </div>
-          </div>
-
           {/* Chat area */}
           <div style={{
             flex: 1, overflowY: "auto", padding: "20px 24px",
@@ -476,27 +464,13 @@ const Chat = () => {
           }}>
             {messages.length === 0 && !isTyping && (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "2rem" }}>
-                <div style={{ fontSize: "2rem", fontWeight: 800, color: C.text, lineHeight: 1.15, marginBottom: "1rem", maxWidth: 480 }}>
-                  Orchestrate Your{" "}
-                  <span style={{ background: "linear-gradient(90deg, #5b8dee, #8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                    NHS Compliance
-                  </span>
-                  {" "}with AI
+                <img src={rivetLogo} alt="Rivet AI" style={{ width: 48, height: 48, borderRadius: "10px", objectFit: "cover", marginBottom: "1rem", opacity: 0.9 }} />
+                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: C.text, marginBottom: "0.4rem" }}>
+                  How can I help you today?
                 </div>
-                <p style={{ color: C.muted, fontSize: "0.9rem", maxWidth: 420, lineHeight: 1.6, margin: "0 0 2rem" }}>
-                  Ask anything about NHS workflows, compliance requirements, DBS checks, Right to Work checks, and regulatory guidance.
+                <p style={{ color: C.muted, fontSize: "0.85rem", maxWidth: 360, lineHeight: 1.5, margin: 0 }}>
+                  Type a message below to start a conversation.
                 </p>
-                <button
-                  onClick={handleNewConversation}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "8px",
-                    backgroundColor: C.accent, color: "#fff", fontWeight: 600,
-                    fontSize: "0.9rem", border: "none", borderRadius: "8px",
-                    padding: "10px 20px", cursor: "pointer", fontFamily: font,
-                  }}
-                >
-                  <Add sx={{ fontSize: 18 }} /> New Conversation
-                </button>
               </div>
             )}
 
@@ -650,9 +624,6 @@ const Chat = () => {
                 <Send sx={{ fontSize: 16 }} />
               </button>
             </form>
-            <p style={{ color: C.muted, fontSize: "0.7rem", textAlign: "center", marginTop: "8px", marginBottom: 0 }}>
-              Rivet AI · NHS Compliance Platform
-            </p>
           </div>
         </div>
       </div>

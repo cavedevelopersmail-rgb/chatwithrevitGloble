@@ -4,6 +4,7 @@ import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import Chat from './components/Chat/Chat';
+import Dashboard from './components/Dashboard/Dashboard';
 import authService from './services/authService';
 
 const theme = createTheme({
@@ -40,6 +41,14 @@ const App = () => {
             element={
               <PrivateRoute>
                 <Chat />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <Dashboard />
               </PrivateRoute>
             }
           />

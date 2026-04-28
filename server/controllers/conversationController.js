@@ -37,6 +37,16 @@ exports.getConversations = async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(skip));
 
+    const conversationIds = conversations.map((c) => c._id);
+    const counts = await Chat.aggregate([
+      { $match: { conversationId: { $in: conversationIds } } },
+      { $group: { _id: '$conversationId', count: { $sum: 1 } } }
+    ]);
+    const countMap = counts.reduce((acc, c) => {
+      acc[String(c._id)] = c.count;
+      return acc;
+    }, {});
+
     const conversationsWithPreview = await Promise.all(
       conversations.map(async (conv) => {
         const lastMessage = await Chat.findOne({ conversationId: conv._id })
@@ -48,7 +58,8 @@ exports.getConversations = async (req, res) => {
           title: conv.title,
           createdAt: conv.createdAt,
           updatedAt: conv.updatedAt,
-          preview: lastMessage ? lastMessage.message.substring(0, 50) : ''
+          preview: lastMessage ? lastMessage.message.substring(0, 50) : '',
+          messageCount: countMap[String(conv._id)] || 0
         };
       })
     );
@@ -126,6 +137,27 @@ exports.updateConversationTitle = async (req, res) => {
   } catch (error) {
     console.error('Update conversation error:', error);
     res.status(500).json({ error: 'Failed to update conversation' });
+  }
+};
+
+exports.getStats = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const [totalConversations, totalMessages, latest] = await Promise.all([
+      Conversation.countDocuments({ userId }),
+      Chat.countDocuments({ userId }),
+      Chat.findOne({ userId }).sort({ timestamp: -1 }).select('timestamp')
+    ]);
+
+    res.json({
+      totalConversations,
+      totalMessages,
+      lastActiveAt: latest ? latest.timestamp : null
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({ error: 'Failed to retrieve stats' });
   }
 };
 
