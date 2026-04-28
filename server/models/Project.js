@@ -5,12 +5,15 @@ const sourceSchema = new mongoose.Schema({
   originalName: { type: String, required: true },
   mimeType: { type: String },
   sizeBytes: { type: Number, default: 0 },
+  kind: { type: String, enum: ['spreadsheet', 'document'], default: 'spreadsheet' },
   sheets: [{
     name: { type: String, required: true },
     columns: [{ type: String }],
     rowCount: { type: Number, default: 0 },
     rows: { type: mongoose.Schema.Types.Mixed, default: [] },
   }],
+  text: { type: String, default: '' },
+  charCount: { type: Number, default: 0 },
   uploadedAt: { type: Date, default: Date.now },
 });
 

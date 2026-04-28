@@ -4,13 +4,14 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const projectController = require('../controllers/projectController');
 
+const ALLOWED_EXT_RE = /\.(xlsx|xls|xlsm|xlsb|ods|csv|tsv|pdf|docx|txt|md|markdown|json|log|html|htm|xml|rtf|yaml|yml)$/i;
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ok = /\.(xlsx|xls|csv)$/i.test(file.originalname);
-    if (ok) cb(null, true);
-    else cb(new Error('Only .xlsx, .xls, or .csv files are allowed'));
+    if (ALLOWED_EXT_RE.test(file.originalname)) cb(null, true);
+    else cb(new Error('Unsupported file type. Allowed: PDF, Word (.docx), Excel/CSV, plain text, Markdown, JSON, HTML, XML.'));
   },
 });
 

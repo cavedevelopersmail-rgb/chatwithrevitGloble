@@ -275,7 +275,9 @@ const ProjectDetail = () => {
 
             <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
               <input
-                ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" hidden
+                ref={fileInputRef} type="file"
+                accept=".pdf,.docx,.xlsx,.xls,.xlsm,.xlsb,.ods,.csv,.tsv,.txt,.md,.markdown,.json,.log,.html,.htm,.xml,.rtf,.yaml,.yml"
+                hidden
                 onChange={(e) => handleFile(e.target.files?.[0])}
               />
               <button
@@ -284,10 +286,10 @@ const ProjectDetail = () => {
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 12px", borderRadius: 8, backgroundColor: uploading ? "transparent" : C.accentDim, color: C.accentText, border: `1px dashed ${C.accent}`, cursor: uploading ? "default" : "pointer", fontFamily: font, fontSize: "0.85rem", fontWeight: 600 }}
               >
                 <CloudUpload sx={{ fontSize: 18 }} />
-                {uploading ? "Uploading…" : "Upload Excel / CSV"}
+                {uploading ? "Uploading…" : "Upload file"}
               </button>
               {uploadError && <div style={{ color: C.error, fontSize: "0.75rem", marginTop: 8 }}>{uploadError}</div>}
-              <p style={{ color: C.muted, fontSize: "0.7rem", margin: "8px 0 0", textAlign: "center" }}>.xlsx, .xls, .csv · max 10MB</p>
+              <p style={{ color: C.muted, fontSize: "0.7rem", margin: "8px 0 0", textAlign: "center" }}>PDF · Word · Excel · CSV · Text · max 25MB</p>
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px 20px" }}>
@@ -299,24 +301,30 @@ const ProjectDetail = () => {
                   No sources yet.
                 </div>
               ) : (
-                project.sources.map((s) => (
-                  <div key={s._id} style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <InsertDriveFile sx={{ fontSize: 16, color: C.accent }} />
-                      <span style={{ flex: 1, color: C.text, fontSize: "0.8rem", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.originalName}</span>
-                      <button onClick={() => handleDeleteSource(s._id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = C.error)}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
-                      >
-                        <Delete sx={{ fontSize: 14 }} />
-                      </button>
+                project.sources.map((s) => {
+                  const isDoc = s.kind === "document";
+                  const ext = (s.originalName.split(".").pop() || "").toUpperCase();
+                  return (
+                    <div key={s._id} style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <InsertDriveFile sx={{ fontSize: 16, color: C.accent }} />
+                        <span style={{ flex: 1, color: C.text, fontSize: "0.8rem", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.originalName}</span>
+                        <button onClick={() => handleDeleteSource(s._id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = C.error)}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
+                        >
+                          <Delete sx={{ fontSize: 14 }} />
+                        </button>
+                      </div>
+                      <div style={{ marginTop: 6, color: C.muted, fontSize: "0.7rem" }}>
+                        {isDoc
+                          ? `${ext} · ${(s.charCount || 0).toLocaleString()} chars`
+                          : (s.sheets || []).map((sh) => `${sh.name} (${sh.rowCount} rows × ${sh.columns.length} cols)`).join(" · ")}
+                      </div>
+                      <div style={{ color: C.muted, fontSize: "0.68rem", marginTop: 2 }}>{formatBytes(s.sizeBytes)}</div>
                     </div>
-                    <div style={{ marginTop: 6, color: C.muted, fontSize: "0.7rem" }}>
-                      {s.sheets.map((sh) => `${sh.name} (${sh.rowCount} rows × ${sh.columns.length} cols)`).join(" · ")}
-                    </div>
-                    <div style={{ color: C.muted, fontSize: "0.68rem", marginTop: 2 }}>{formatBytes(s.sizeBytes)}</div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -332,8 +340,8 @@ const ProjectDetail = () => {
                   </div>
                   <p style={{ color: C.muted, fontSize: "0.85rem", maxWidth: 380, lineHeight: 1.5, margin: 0 }}>
                     {project.sources.length === 0
-                      ? "Add an Excel or CSV file from the left, then ask questions like \"Is Rahul available?\" or \"Show all booked entries\"."
-                      : "I'll only use the data in your uploaded sources. If something isn't there, I'll say so."}
+                      ? "Add a PDF, Word, Excel, CSV, or text file from the left, then ask questions about its contents."
+                      : "I'll only use the content in your uploaded files. If something isn't there, I'll say so."}
                   </p>
                 </div>
               )}

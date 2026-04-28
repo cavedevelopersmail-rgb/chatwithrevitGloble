@@ -167,7 +167,7 @@ const Projects = () => {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
             <div>
               <h1 style={{ color: C.text, fontSize: "1.5rem", fontWeight: 700, margin: "0 0 4px" }}>Projects</h1>
-              <p style={{ color: C.muted, fontSize: "0.85rem", margin: 0 }}>Upload Excel/CSV files and chat with your data.</p>
+              <p style={{ color: C.muted, fontSize: "0.85rem", margin: 0 }}>Upload files (PDF, Word, Excel, CSV, text) and chat with your data.</p>
             </div>
             <button
               onClick={() => { setNewName(""); setNewDesc(""); setCreateOpen(true); }}
@@ -184,7 +184,7 @@ const Projects = () => {
               <Folder sx={{ fontSize: 36, color: C.muted, marginBottom: "8px" }} />
               <div style={{ color: C.text, fontWeight: 600, fontSize: "1rem", marginBottom: "4px" }}>No projects yet</div>
               <p style={{ color: C.muted, fontSize: "0.85rem", maxWidth: 380, margin: "0 auto 16px" }}>
-                Create a project, upload an Excel or CSV file, then ask questions about your data.
+                Create a project, upload a PDF, Word, Excel, CSV, or text file, then ask questions about it.
               </p>
               <button
                 onClick={() => { setNewName(""); setNewDesc(""); setCreateOpen(true); }}
