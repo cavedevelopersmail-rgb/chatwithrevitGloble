@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3010/api'}/conversations`;
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || '/api'}/conversations`;
 
 const conversationService = {
   createConversation: async (title) => {
