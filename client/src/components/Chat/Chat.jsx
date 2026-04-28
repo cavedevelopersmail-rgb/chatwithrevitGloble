@@ -28,7 +28,7 @@ import {
   DeleteForever,
   Chat as ChatBubbleIcon,
   BarChart,
-  Assignment,
+  Folder,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import authService from "../../services/authService";
@@ -61,7 +61,7 @@ const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
 const NAV_ITEMS = [
   { icon: <ChatBubbleIcon sx={{ fontSize: 18 }} />, label: "Conversations", id: "chat", path: "/chat" },
   { icon: <BarChart sx={{ fontSize: 18 }} />, label: "Dashboard", id: "dashboard", path: "/dashboard" },
-  { icon: <Assignment sx={{ fontSize: 18 }} />, label: "Compliance", id: "compliance", soon: true },
+  { icon: <Folder sx={{ fontSize: 18 }} />, label: "Projects", id: "projects", path: "/projects" },
 ];
 
 const TypingIndicator = () => (

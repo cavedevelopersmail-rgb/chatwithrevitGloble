@@ -5,6 +5,8 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import Chat from './components/Chat/Chat';
 import Dashboard from './components/Dashboard/Dashboard';
+import Projects from './components/Projects/Projects';
+import ProjectDetail from './components/Projects/ProjectDetail';
 import authService from './services/authService';
 
 const theme = createTheme({
@@ -49,6 +51,22 @@ const App = () => {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/projects"
+            element={
+              <PrivateRoute>
+                <Projects />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/projects/:id"
+            element={
+              <PrivateRoute>
+                <ProjectDetail />
               </PrivateRoute>
             }
           />
