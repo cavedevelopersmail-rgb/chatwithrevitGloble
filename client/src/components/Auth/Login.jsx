@@ -106,7 +106,8 @@ const Login = () => {
 
   return (
     <div className="auth-page" style={{
-      minHeight: "100vh",
+      position: "fixed",
+      inset: 0,
       background: "linear-gradient(135deg, #dbeafe 0%, #ede9fe 40%, #fce7f3 100%)",
       display: "flex",
       flexDirection: "column",
@@ -114,7 +115,6 @@ const Login = () => {
       justifyContent: "flex-start",
       fontFamily: font,
       padding: "72px 1rem 2rem",
-      position: "relative",
       overflowY: "auto",
       WebkitOverflowScrolling: "touch",
       boxSizing: "border-box",
