@@ -23,6 +23,7 @@ const projectSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   responseMode: { type: String, enum: ['short', 'detailed'], default: 'short' },
   responseSpeed: { type: String, enum: ['fast', 'medium', 'deep'], default: 'fast' },
+  instructions: { type: String, default: '', maxlength: 4000 },
   sources: [sourceSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

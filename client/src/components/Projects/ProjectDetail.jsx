@@ -70,6 +70,7 @@ const ProjectDetail = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState("");
+  const [instructionsDraft, setInstructionsDraft] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -85,6 +86,7 @@ const ProjectDetail = () => {
         const data = await projectService.get(id);
         setProject(data.project);
         setDraftName(data.project.name);
+        setInstructionsDraft(data.project.instructions || "");
       } catch (e) {
         console.error(e);
       } finally {
@@ -410,6 +412,7 @@ const ProjectDetail = () => {
               </form>
               <p style={{ color: C.muted, fontSize: "0.7rem", textAlign: "center", marginTop: 6, marginBottom: 0 }}>
                 Strict source mode · {project.responseMode === "detailed" ? "Detailed answers" : "Short answers"}
+                {(project.instructions || "").trim() && <> · <span style={{ color: C.accent }}>Custom role on</span></>}
               </p>
             </div>
           </div>
@@ -417,9 +420,24 @@ const ProjectDetail = () => {
       </div>
 
       {/* Settings dialog */}
-      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} PaperProps={{ sx: { backgroundColor: C.card, color: C.text, minWidth: 360 } }}>
+      <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} PaperProps={{ sx: { backgroundColor: C.card, color: C.text, minWidth: 420, maxWidth: 520 } }}>
         <DialogTitle sx={{ fontFamily: font, fontSize: "1rem" }}>Project settings</DialogTitle>
         <DialogContent>
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ color: C.mutedLight, fontSize: "0.78rem", marginBottom: 6, fontWeight: 600 }}>Custom role / instructions</div>
+            <textarea
+              value={instructionsDraft}
+              onChange={(e) => setInstructionsDraft(e.target.value.slice(0, 4000))}
+              onBlur={() => { if (instructionsDraft !== (project.instructions || "")) handleSaveSettings({ instructions: instructionsDraft }); }}
+              placeholder={"Tell the AI what role to play and what it should do.\n\nExample: You are a recruiter reviewing CVs. For each question, list candidates that match, with name, years of experience, and key skills."}
+              rows={5}
+              style={{ width: "100%", boxSizing: "border-box", background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", color: C.text, fontFamily: font, fontSize: "0.82rem", lineHeight: 1.5, resize: "vertical", outline: "none" }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+              <p style={{ color: C.muted, fontSize: "0.7rem", margin: 0 }}>Defines the assistant's role and output style. The strict source-only rule is always enforced.</p>
+              <span style={{ color: C.muted, fontSize: "0.68rem" }}>{instructionsDraft.length}/4000</span>
+            </div>
+          </div>
           <div style={{ marginBottom: 16 }}>
             <div style={{ color: C.mutedLight, fontSize: "0.78rem", marginBottom: 8, fontWeight: 600 }}>Response style</div>
             <div style={{ display: "flex", gap: 8 }}>
