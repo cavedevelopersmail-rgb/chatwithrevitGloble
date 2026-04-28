@@ -29,6 +29,11 @@ import {
   Chat as ChatBubbleIcon,
   BarChart,
   Folder,
+  MenuBook,
+  FindInPage,
+  VerifiedUser,
+  ArrowForward,
+  ChatBubbleOutline,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import authService from "../../services/authService";
@@ -108,6 +113,8 @@ const Chat = () => {
   const [conversationToDelete, setConversationToDelete] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const [hoveredPath, setHoveredPath] = useState(null);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -228,6 +235,45 @@ const Chat = () => {
   };
 
   const handleLogout = async () => { await authService.logout(); navigate("/login"); };
+
+  const focusInput = () => {
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleStartPath = (path) => {
+    if (path.route) {
+      navigate(path.route);
+      return;
+    }
+    if (path.seed) {
+      setNewMessage(path.seed);
+    }
+    focusInput();
+  };
+
+  const TRIAGE_PATHS = [
+    {
+      id: "decode",
+      icon: <MenuBook sx={{ fontSize: 22 }} />,
+      title: "Decode a regulation",
+      description: "Ask about specific NICE guidelines, CQC KLOEs, or complex frameworks like DoLS.",
+      seed: "Help me decode a regulation. Specifically, I want to understand: ",
+    },
+    {
+      id: "audit",
+      icon: <FindInPage sx={{ fontSize: 22 }} />,
+      title: "Audit a document or policy",
+      description: "Upload care plans, risk assessments, or audit reports for a compliance review.",
+      route: "/projects",
+    },
+    {
+      id: "inspect",
+      icon: <VerifiedUser sx={{ fontSize: 22 }} />,
+      title: "Prep for an inspection",
+      description: "Generate checklists and mock questions based on the latest CQC inspection framework.",
+      seed: "I need to prep for a CQC inspection. Please generate a checklist covering ",
+    },
+  ];
 
   if (loading) return (
     <div style={{ height: "100vh", backgroundColor: C.bg, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontFamily: font, fontSize: "0.9rem" }}>
@@ -462,16 +508,162 @@ const Chat = () => {
             display: "flex", flexDirection: "column", gap: "16px",
             scrollbarWidth: "thin", scrollbarColor: `${C.border} transparent`,
           }}>
-            {messages.length === 0 && !isTyping && (
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "2rem" }}>
-                <img src={rivetLogo} alt="Rivet AI" style={{ width: 48, height: 48, borderRadius: "10px", objectFit: "cover", marginBottom: "1rem", opacity: 0.9 }} />
-                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: C.text, marginBottom: "0.4rem" }}>
-                  How can I help you today?
+            {messages.length === 0 && !isTyping && !newMessage.trim() && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  padding: "2rem 1.5rem",
+                }}
+              >
+                <div style={{ width: "100%", maxWidth: 1040, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  {/* Headline */}
+                  <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
+                    <h1 style={{
+                      fontSize: "clamp(1.6rem, 3vw, 2.2rem)",
+                      fontWeight: 700,
+                      letterSpacing: "-0.02em",
+                      color: C.text,
+                      margin: "0 0 0.6rem",
+                      lineHeight: 1.15,
+                    }}>
+                      What can I help with today?
+                    </h1>
+                    <p style={{
+                      fontSize: "clamp(0.95rem, 1.2vw, 1.05rem)",
+                      color: C.mutedLight,
+                      margin: 0,
+                      lineHeight: 1.5,
+                    }}>
+                      Choose a path below to start a guided intake, tailored for NHS compliance.
+                    </p>
+                  </div>
+
+                  {/* Path cards */}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                    gap: "1.1rem",
+                    width: "100%",
+                    marginBottom: "2rem",
+                  }}>
+                    {TRIAGE_PATHS.map((path) => {
+                      const isHover = hoveredPath === path.id;
+                      return (
+                        <button
+                          key={path.id}
+                          type="button"
+                          onClick={() => handleStartPath(path)}
+                          onMouseEnter={() => setHoveredPath(path.id)}
+                          onMouseLeave={() => setHoveredPath(null)}
+                          onFocus={() => setHoveredPath(path.id)}
+                          onBlur={() => setHoveredPath(null)}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            textAlign: "left",
+                            padding: "1.4rem 1.3rem",
+                            borderRadius: "14px",
+                            backgroundColor: isHover ? C.cardHover : C.card,
+                            border: `1px solid ${isHover ? C.accent : C.border}`,
+                            transform: isHover ? "translateY(-3px)" : "translateY(0)",
+                            boxShadow: isHover ? "0 12px 28px -12px rgba(0,0,0,0.55)" : "none",
+                            transition: "background-color 0.25s, border-color 0.25s, transform 0.25s, box-shadow 0.25s",
+                            cursor: "pointer",
+                            fontFamily: font,
+                            outline: "none",
+                            minHeight: 200,
+                          }}
+                        >
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 44,
+                            height: 44,
+                            borderRadius: "10px",
+                            marginBottom: "1rem",
+                            backgroundColor: isHover ? C.accentDim : C.surface,
+                            color: isHover ? C.accentText : C.mutedLight,
+                            transition: "background-color 0.25s, color 0.25s",
+                          }}>
+                            {path.icon}
+                          </div>
+                          <h3 style={{
+                            fontSize: "1.02rem",
+                            fontWeight: 600,
+                            color: C.text,
+                            margin: "0 0 0.45rem",
+                            letterSpacing: "-0.01em",
+                          }}>
+                            {path.title}
+                          </h3>
+                          <p style={{
+                            fontSize: "0.83rem",
+                            color: C.muted,
+                            lineHeight: 1.55,
+                            margin: "0 0 1.4rem",
+                            flex: 1,
+                          }}>
+                            {path.description}
+                          </p>
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            fontSize: "0.82rem",
+                            fontWeight: 500,
+                            color: isHover ? C.accent : C.muted,
+                            transform: isHover ? "translateX(4px)" : "translateX(0)",
+                            transition: "color 0.25s, transform 0.25s",
+                            marginTop: "auto",
+                          }}>
+                            Start path <ArrowForward sx={{ fontSize: 15 }} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Skip the guide */}
+                  <button
+                    type="button"
+                    onClick={focusInput}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 16px",
+                      borderRadius: "999px",
+                      backgroundColor: "transparent",
+                      border: "none",
+                      color: C.mutedLight,
+                      fontSize: "0.82rem",
+                      fontFamily: font,
+                      cursor: "pointer",
+                      transition: "background-color 0.2s, color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = C.card;
+                      e.currentTarget.style.color = C.text;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = C.mutedLight;
+                    }}
+                  >
+                    <ChatBubbleOutline sx={{ fontSize: 14, opacity: 0.8 }} />
+                    <span>Or skip the guide and ask freely</span>
+                  </button>
                 </div>
-                <p style={{ color: C.muted, fontSize: "0.85rem", maxWidth: 360, lineHeight: 1.5, margin: 0 }}>
-                  Type a message below to start a conversation.
-                </p>
-              </div>
+              </motion.div>
             )}
 
             <AnimatePresence>
@@ -599,6 +791,7 @@ const Chat = () => {
                   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); }
                 }}
                 InputProps={{ disableUnderline: true, style: { color: C.text, fontFamily: font, fontSize: "0.9rem" } }}
+                inputRef={inputRef}
                 sx={{ flex: 1 }}
               />
               <button
