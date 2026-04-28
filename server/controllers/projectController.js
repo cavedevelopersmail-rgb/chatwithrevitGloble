@@ -1,9 +1,11 @@
 const Project = require('../models/Project');
 const XLSX = require('xlsx');
 const path = require('path');
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 const MAX_ROWS_PER_SHEET = 5000;
 const MAX_CELL_LEN = 500;
@@ -409,6 +411,10 @@ Rules (follow EXACTLY):
 === SOURCE DATA START ===${sourceContext}
 === SOURCE DATA END ===`;
 
+    if (!genAI) {
+      return res.status(500).json({ error: 'AI is not configured. Please add a GEMINI_API_KEY.' });
+    }
+
     const safeHistory = (Array.isArray(history) ? history : [])
       .slice(-10)
       .map((m) => {
@@ -418,19 +424,29 @@ Rules (follow EXACTLY):
       })
       .filter(Boolean);
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...safeHistory,
-      { role: 'user', content: String(message).slice(0, 4000) },
-    ];
+    const geminiHistory = safeHistory.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
-      temperature: 0.1,
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      systemInstruction: systemPrompt,
+      generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
     });
 
-    const response = completion.choices?.[0]?.message?.content?.trim() || 'Not available in provided source';
+    let response = '';
+    try {
+      const chat = model.startChat({ history: geminiHistory });
+      const result = await chat.sendMessage(String(message).slice(0, 4000));
+      response = (result?.response?.text?.() || '').trim() || 'Not available in provided source';
+    } catch (err) {
+      console.error('Gemini error:', err?.status || '', err?.message || err);
+      const friendly = err?.status === 401 || err?.status === 403 || /api key/i.test(err?.message || '')
+        ? 'AI key is invalid. Please update GEMINI_API_KEY.'
+        : 'Failed to get a response from the AI.';
+      return res.status(500).json({ error: friendly });
+    }
 
     res.json({
       response,

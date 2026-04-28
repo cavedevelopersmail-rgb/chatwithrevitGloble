@@ -6,6 +6,7 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@openai/agents": "^0.3.4",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
