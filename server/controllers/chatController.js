@@ -1,44 +1,12 @@
 const Chat = require("../models/Chat");
 const Conversation = require("../models/Conversation");
-const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// 1. Import OpenAI Agents SDK
-const {
-  fileSearchTool,
-  webSearchTool,
-  Agent,
-  Runner,
-} = require("@openai/agents");
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
-// 2. Setup Configuration
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// --- AGENT CONFIGURATION START ---
-
-// Define the File Search Tool
-// Note: Ensure this Vector Store ID (vs_...) exists in your OpenAI Dashboard
-const fileSearch = fileSearchTool(["vs_69358b9c6b0c8191a5d6b1cd5f5cc568"]);
-
-// Define the Web Search Tool
-const webSearchPreview = webSearchTool({
-  userLocation: {
-    type: "approximate",
-    country: "GB",
-    region: undefined,
-    city: undefined,
-    timezone: undefined,
-  },
-  searchContextSize: "medium",
-  filters: {
-    allowed_domains: ["www.cqc.org.uk", "www.england.nhs.uk"],
-  },
-});
-
-const complianceHouse = new Agent({
-  name: "COMPLIANCE HOUSE",
-  instructions: `System Instruction: The 'Compliance House' Persona
+const COMPLIANCE_HOUSE_INSTRUCTIONS = `System Instruction: The 'Compliance House' Persona
 Role: You are Compliance House, the ultimate "Knowledgeable Work Bestie" for UK Healthcare (NHS) professionals. You are the calm in the chaos of hospital administration.
 
 Your Prime Directive: Reduce the cognitive load of the user. NHS staff are overworked and stressed. They do not have time to read websites. They need answers, not homework.
@@ -46,13 +14,13 @@ Your Prime Directive: Reduce the cognitive load of the user. NHS staff are overw
 🧠 The "Zero-Link" Cognitive Protocol
 CRITICAL: You have a strict "No-Link" policy.
 
-Dont say If you need help with something specific from the files you uploaded, just let me know! dont tell the user that we have uploaded any file 
+Don't say "If you need help with something specific from the files you uploaded, just let me know!" — don't tell the user that we have uploaded any file.
 
-Always have convensing power use physchological triger of human
+Always have convincing power; use psychological triggers of human conversation.
 
-Always take follow-ups suggest qustion 
+Always offer follow-up suggested questions.
 
-Ingest: When asked a question, you MUST use your browser/search tools to find the official UK Govt/NHS source (e.g., gov.uk, nhs.uk, RCN, GMC).
+Ingest: When asked a question, draw on your knowledge of official UK Govt/NHS sources (e.g., gov.uk, nhs.uk, CQC, RCN, GMC, NMC).
 
 Digest: Read the content fully. Understand the nuance.
 
@@ -76,7 +44,7 @@ Terminology: Use British English (S-spelling) and NHS acronyms correctly (DBS, R
 
 Trigger: User asks about DBS, Right to Work, Training, or Visas.
 
-Action: Search specifically for "UK NHS [Topic]". Verify the latest 2024/2025 rules.
+Action: Recall the latest UK NHS rules from your knowledge.
 
 Response: Break it down into bullet points.
 
@@ -101,77 +69,59 @@ To a Colleague: Collaborative.
 Method: Provide the draft, then briefly explain why you wrote it that way (e.g., "I kept this formal because NHS safeguarding trails need to be precise.")
 
 🛡 Safety & Integrity Rules
-The "I Don't Know" Clause: If your search yields no concrete results, admit it warmly. "I've checked the latest NHS guidelines and I can't find a 100% solid answer on that specific nuance. I'd recommend asking your HR lead directly so you don't get caught out! 😊"
+The "I Don't Know" Clause: If you are not certain of the latest specific rule, admit it warmly. "I'm not 100% sure on that specific nuance with the latest guidance — I'd recommend checking with your HR lead directly so you don't get caught out! 😊"
 
-No Hallucinations: Never guess regulations. If it involves a visa or legal status, verify the source twice before typing.
+No Hallucinations: Never guess regulations. If it involves a visa or legal status and you're not certain, say so and recommend the user verifies with the official source.
 
 💡 Example Interaction Patterns (Few-Shot Training)
-User: "My DBS is stuck in stage 4. What do I do?" Compliance House: "Ugh, Stage 4 is the worst—that's the Police search stage. 🚓 Unfortunately, there's no way to speed that specific part up as it's with local forces. However, if it's been over 60 days, we can escalate it.
+User: "My DBS is stuck in stage 4. What do I do?"
+Compliance House: "Ugh, Stage 4 is the worst — that's the Police search stage. 🚓 Unfortunately, there's no way to speed that specific part up as it's with local forces. However, if it's been over 60 days, we can escalate it.
 
-Check the exact date it went to Stage 4.
+- Check the exact date it went to Stage 4.
+- If it's 60+ days, let me know, and I'll draft an escalation email for you to send to the DBS team.
 
-If it's 60+ days, let me know, and I'll draft an escalation email for you to send to the DBS team. Hang in there! 😊"
+Hang in there! 😊"
 
-User: "I need to tell the agency I can't work Saturday because I'm burnout." Compliance House: "I hear you. It's important to protect your registration and your health. Let's keep it professional but firm. Here is a draft for WhatsApp or SMS:
+User: "I need to tell the agency I can't work Saturday because I'm burnout."
+Compliance House: "I hear you. It's important to protect your registration and your health. Let's keep it professional but firm. Here is a draft for WhatsApp or SMS:
 
 'Hi [Name], I wanted to let you know as early as possible that I'm unavailable for the shift this Saturday. I need to take the weekend to recharge so I can be safe and effective for my next rotation. Thanks for understanding.'
 
-How does that sound? 🏥"
+How does that sound? 🏥"`;
 
-Why this prompt works better:
-Cognitive Modeling: Instead of just saying "Search the web," I broke it down into Ingest -> Digest -> Distill. This forces the AI to process the information differently—it stops it from being a search engine proxy and turns it into an analyst.
-
-Contextual "Vibe" Settings: By defining "WhatsApp Professional," we avoid the AI sounding like a generic customer service bot or an overly formal Victorian letter writer. It strikes the perfect balance for modern mobile users.
-
-The "Ghostwriter" Logic: I added instructions on who the audience is (Matron vs. Agency). This allows the AI to modulate the tone of the emails it writes, which is a high-value feature for the user.
-
-Positive Reinforcement: Instead of a list of "DO NOTs," I provided "Example Interaction Patterns." LLMs learn much faster from examples of good behavior than from lists of bad behavior.`,
-  // Ensure you use a valid model available in your environment
-  model: "gpt-4o",
-  tools: [fileSearch, webSearchPreview],
-  modelSettings: {
-    temperature: 0.7, // Slightly lower to keep compliance info accurate but still friendly
-    topP: 1,
-    maxTokens: 2048,
-    store: true,
-  },
-});
-
-// Helper function to run the workflow
 async function runWorkflow(inputText, previousMessages = []) {
-  const conversationHistory = previousMessages.map(msg => ({
-    role: msg.role,
-    content: [{ type: "input_text", text: msg.content }]
-  }));
+  if (!genAI) {
+    throw new Error("GEMINI_API_KEY not configured");
+  }
 
-  conversationHistory.push({
-    role: "user",
-    content: [{ type: "input_text", text: inputText }]
-  });
+  const geminiHistory = previousMessages
+    .filter((m) => m && typeof m.content === "string" && m.content.trim().length > 0)
+    .map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content.slice(0, 8000) }],
+    }));
 
-  const runner = new Runner({
-    traceMetadata: {
-      _trace_source_: "agent-builder",
-      workflow_id: "wf_69358a2640a08190a0de15e619296bd201932ce0c2c0dd94",
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    systemInstruction: COMPLIANCE_HOUSE_INSTRUCTIONS,
+    generationConfig: {
+      temperature: 0.7,
+      topP: 1,
+      maxOutputTokens: 2048,
     },
   });
 
-  const complianceHouseResultTemp = await runner.run(complianceHouse, [
-    ...conversationHistory,
-  ]);
+  const chat = model.startChat({ history: geminiHistory });
+  const result = await chat.sendMessage(String(inputText).slice(0, 8000));
+  const text = (result?.response?.text?.() || "").trim();
 
-  if (!complianceHouseResultTemp.finalOutput) {
-    throw new Error("Agent result is undefined");
+  if (!text) {
+    throw new Error("Empty response from Gemini");
   }
 
-  return {
-    output_text: complianceHouseResultTemp.finalOutput ?? "",
-  };
+  return { output_text: text };
 }
 
-// --- AGENT CONFIGURATION END ---
-
-// 3. Updated sendMessage Controller
 exports.sendMessage = async (req, res) => {
   try {
     const { message, conversationId } = req.body;
@@ -181,9 +131,8 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    // Check if API key is present
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ error: "OpenAI API Key not configured" });
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API Key not configured" });
     }
 
     let currentConversationId = conversationId;
@@ -191,14 +140,14 @@ exports.sendMessage = async (req, res) => {
     if (!currentConversationId) {
       const newConversation = new Conversation({
         userId,
-        title: message.substring(0, 50)
+        title: message.substring(0, 50),
       });
       await newConversation.save();
       currentConversationId = newConversation._id;
     } else {
       const conversation = await Conversation.findOne({
         _id: currentConversationId,
-        userId
+        userId,
       });
 
       if (!conversation) {
@@ -214,22 +163,26 @@ exports.sendMessage = async (req, res) => {
       .limit(10);
 
     const previousMessages = [];
-    previousChats.forEach(chat => {
+    previousChats.forEach((chat) => {
       previousMessages.push({ role: "user", content: chat.message });
       previousMessages.push({ role: "assistant", content: chat.response });
     });
 
     let responseMessage;
-    let modelName = "compliance-house-agent";
+    const modelName = `gemini:${GEMINI_MODEL}`;
 
     try {
-      console.log("Running Compliance House Agent...");
+      console.log("Running Compliance House Agent (Gemini)...");
       const agentResult = await runWorkflow(message, previousMessages);
       responseMessage = agentResult.output_text;
     } catch (apiError) {
-      console.error("Agent Workflow Error:", apiError);
+      console.error("Agent Workflow Error:", apiError?.status || "", apiError?.message || apiError);
+      const friendly =
+        apiError?.status === 401 || apiError?.status === 403 || /api key/i.test(apiError?.message || "")
+          ? "AI key is invalid. Please update GEMINI_API_KEY."
+          : "Failed to get response from AI Agent";
       return res.status(500).json({
-        error: "Failed to get response from AI Agent",
+        error: friendly,
         details: apiError.message,
       });
     }
@@ -270,7 +223,7 @@ exports.getChatHistory = async (req, res) => {
 
     const conversation = await Conversation.findOne({
       _id: conversationId,
-      userId
+      userId,
     });
 
     if (!conversation) {
@@ -339,13 +292,13 @@ exports.regenerateResponse = async (req, res) => {
 
     const previousChats = await Chat.find({
       conversationId: chat.conversationId,
-      timestamp: { $lt: chat.timestamp }
+      timestamp: { $lt: chat.timestamp },
     })
       .sort({ timestamp: 1 })
       .limit(10);
 
     const previousMessages = [];
-    previousChats.forEach(c => {
+    previousChats.forEach((c) => {
       previousMessages.push({ role: "user", content: c.message });
       previousMessages.push({ role: "assistant", content: c.response });
     });
@@ -356,9 +309,13 @@ exports.regenerateResponse = async (req, res) => {
       const agentResult = await runWorkflow(chat.message, previousMessages);
       responseMessage = agentResult.output_text;
     } catch (apiError) {
-      console.error("Agent Workflow Error:", apiError);
+      console.error("Agent Workflow Error:", apiError?.status || "", apiError?.message || apiError);
+      const friendly =
+        apiError?.status === 401 || apiError?.status === 403 || /api key/i.test(apiError?.message || "")
+          ? "AI key is invalid. Please update GEMINI_API_KEY."
+          : "Failed to regenerate response";
       return res.status(500).json({
-        error: "Failed to regenerate response",
+        error: friendly,
         details: apiError.message,
       });
     }
@@ -368,7 +325,7 @@ exports.regenerateResponse = async (req, res) => {
     await chat.save();
 
     await Conversation.findByIdAndUpdate(chat.conversationId, {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     res.json({
