@@ -56,7 +56,7 @@ const Login = () => {
         text: "continue_with",
         shape: "rectangular",
         logo_alignment: "left",
-        width: 376,
+        width: 360,
       });
     };
 
@@ -112,9 +112,9 @@ const Login = () => {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "flex-start",
+      justifyContent: "center",
       fontFamily: font,
-      padding: "72px 1rem 2rem",
+      padding: "12px 1rem",
       overflowY: "auto",
       WebkitOverflowScrolling: "touch",
       boxSizing: "border-box",
@@ -141,36 +141,35 @@ const Login = () => {
       {/* Card */}
       <div className="auth-card" style={{
         background: "#fff",
-        borderRadius: "20px",
+        borderRadius: "16px",
         boxShadow: "0 12px 48px rgba(0,0,0,0.10)",
-        padding: "32px 28px",
+        padding: "20px 24px",
         width: "100%",
-        maxWidth: 440,
-        margin: "auto 0",
+        maxWidth: 420,
         boxSizing: "border-box",
       }}>
 
         {/* App icon */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
           <div style={{
-            width: 64, height: 64, borderRadius: 18,
+            width: 44, height: 44, borderRadius: 12,
             background: "linear-gradient(135deg,#3b82f6,#2563eb)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 6px 20px rgba(59,130,246,0.45)",
+            boxShadow: "0 4px 14px rgba(59,130,246,0.4)",
           }}>
-            <img src={rivetLogo} alt="Rivet AI" style={{ width: 38, height: 38, objectFit: "cover", borderRadius: "8px" }} />
+            <img src={rivetLogo} alt="Rivet AI" style={{ width: 26, height: 26, objectFit: "cover", borderRadius: "6px" }} />
           </div>
         </div>
 
-        <h1 style={{ textAlign: "center", fontSize: "1.5rem", fontWeight: 700, color: "#111827", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+        <h1 style={{ textAlign: "center", fontSize: "1.2rem", fontWeight: 700, color: "#111827", margin: "0 0 2px", letterSpacing: "-0.02em" }}>
           Welcome Back
         </h1>
-        <p style={{ textAlign: "center", fontSize: "0.875rem", color: "#6b7280", margin: "0 0 24px" }}>
+        <p style={{ textAlign: "center", fontSize: "0.8rem", color: "#6b7280", margin: "0 0 14px" }}>
           Sign in to your account
         </p>
 
         {/* Google SSO — official Google button */}
-        <div style={{ marginBottom: 16, position: "relative", minHeight: 44 }}>
+        <div style={{ marginBottom: 10, position: "relative", minHeight: 40 }}>
           {!GOOGLE_CLIENT_ID && (
             <div style={{
               padding: "10px 14px", background: "#fef3c7", border: "1px solid #fcd34d",
@@ -191,9 +190,9 @@ const Login = () => {
         </div>
 
         {/* Divider */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
           <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
-          <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>or use email</span>
+          <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>or use email</span>
           <div style={{ flex: 1, height: 1, background: "#e5e7eb" }} />
         </div>
 
@@ -209,13 +208,13 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           {/* Email */}
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#374151", marginBottom: 4 }}>
               Email Address
             </label>
             <div style={{ position: "relative" }}>
-              <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                   <polyline points="22,6 12,13 2,6"/>
                 </svg>
@@ -227,10 +226,11 @@ const Login = () => {
                 onChange={handleChange}
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
                 style={{
-                  width: "100%", height: 52, padding: "0 14px 0 44px",
-                  border: "1.5px solid #d1d5db", borderRadius: 12,
-                  fontSize: "0.95rem", color: "#111827",
+                  width: "100%", height: 42, padding: "0 12px 0 38px",
+                  border: "1.5px solid #d1d5db", borderRadius: 10,
+                  fontSize: "0.9rem", color: "#111827",
                   background: "#f9fafb", outline: "none",
                   boxSizing: "border-box", fontFamily: font,
                   transition: "border-color 0.15s, box-shadow 0.15s",
@@ -242,13 +242,13 @@ const Login = () => {
           </div>
 
           {/* Password */}
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#374151", marginBottom: 4 }}>
               Password
             </label>
             <div style={{ position: "relative" }}>
-              <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="11" width="18" height="11" rx="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
@@ -260,10 +260,11 @@ const Login = () => {
                 onChange={handleChange}
                 placeholder="••••••••••"
                 required
+                autoComplete="current-password"
                 style={{
-                  width: "100%", height: 52, padding: "0 52px 0 44px",
-                  border: "1.5px solid #d1d5db", borderRadius: 12,
-                  fontSize: "0.95rem", color: "#111827",
+                  width: "100%", height: 42, padding: "0 44px 0 38px",
+                  border: "1.5px solid #d1d5db", borderRadius: 10,
+                  fontSize: "0.9rem", color: "#111827",
                   background: "#f9fafb", outline: "none",
                   boxSizing: "border-box", fontFamily: font,
                   transition: "border-color 0.15s, box-shadow 0.15s",
@@ -276,34 +277,34 @@ const Login = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 style={{
-                  position: "absolute", right: 0, top: 0, height: 52, width: 48,
+                  position: "absolute", right: 0, top: 0, height: 42, width: 40,
                   background: "none", border: "none", cursor: "pointer",
                   color: "#6b7280", display: "flex", alignItems: "center", justifyContent: "center",
                 }}
               >
                 {showPassword
-                  ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                  : <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 }
               </button>
             </div>
           </div>
 
           {/* Remember me + Forgot password */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.85rem", color: "#374151", userSelect: "none" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.8rem", color: "#374151", userSelect: "none" }}>
               <div
                 onClick={() => setRemember(!remember)}
                 style={{
-                  width: 38, height: 22, borderRadius: 11,
+                  width: 34, height: 20, borderRadius: 10,
                   background: remember ? "#3b82f6" : "#d1d5db",
                   position: "relative", transition: "background 0.2s",
                   cursor: "pointer", flexShrink: 0,
                 }}
               >
                 <div style={{
-                  position: "absolute", top: 3, left: remember ? 19 : 3,
-                  width: 16, height: 16, borderRadius: "50%", background: "#fff",
+                  position: "absolute", top: 3, left: remember ? 17 : 3,
+                  width: 14, height: 14, borderRadius: "50%", background: "#fff",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.2)", transition: "left 0.2s",
                 }} />
               </div>
@@ -311,7 +312,7 @@ const Login = () => {
             </label>
             <button
               type="button"
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", fontFamily: font, fontSize: "0.82rem", fontWeight: 500, padding: 0 }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", fontFamily: font, fontSize: "0.78rem", fontWeight: 500, padding: 0 }}
             >
               Forgot password?
             </button>
@@ -322,10 +323,10 @@ const Login = () => {
             type="submit"
             disabled={loading}
             style={{
-              width: "100%", height: 52,
+              width: "100%", height: 44,
               background: loading ? "#93c5fd" : "linear-gradient(135deg,#3b82f6,#2563eb)",
-              color: "#fff", fontWeight: 700, fontSize: "1rem",
-              border: "none", borderRadius: 12, cursor: loading ? "not-allowed" : "pointer",
+              color: "#fff", fontWeight: 700, fontSize: "0.95rem",
+              border: "none", borderRadius: 10, cursor: loading ? "not-allowed" : "pointer",
               fontFamily: font, boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               transition: "opacity 0.15s",
@@ -353,7 +354,7 @@ const Login = () => {
           </button>
         </form>
 
-        <p style={{ textAlign: "center", marginTop: 18, marginBottom: 0, fontSize: "0.875rem", color: "#6b7280" }}>
+        <p style={{ textAlign: "center", marginTop: 12, marginBottom: 0, fontSize: "0.8rem", color: "#6b7280" }}>
           Don&apos;t have an account?{" "}
           <button
             type="button"
