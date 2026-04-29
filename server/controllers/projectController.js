@@ -91,65 +91,143 @@ async function parseDocument(buffer, filename, mimetype) {
   throw new Error('Unsupported file type');
 }
 
-// Convert any Google Sheets URL into a public XLSX export URL.
-// Returns { exportUrl, sheetId, sheetName } or null if it's not a Google Sheets link.
-function parseGoogleSheetsUrl(rawUrl) {
+// Convert a shareable spreadsheet URL (Google Sheets OR Excel on OneDrive /
+// SharePoint / 1drv.ms) into a direct XLSX download URL we can fetch.
+// Returns { provider, downloadUrl, sourceId, displayName } or null.
+function parseSheetUrl(rawUrl) {
+  const trimmed = String(rawUrl || '').trim();
+  if (!trimmed) return null;
   let u;
-  try { u = new URL(String(rawUrl || '').trim()); } catch (_) { return null; }
-  if (u.hostname !== 'docs.google.com') return null;
-  const m = u.pathname.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (!m) return null;
-  const sheetId = m[1];
-  // Export the entire workbook as XLSX so all tabs come through and our
-  // existing parseWorkbook() can handle the buffer with no special-casing.
-  const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
-  return { exportUrl, sheetId };
+  try { u = new URL(trimmed); } catch (_) { return null; }
+  // Only accept https inputs — defense in depth alongside per-hop validation
+  // in fetchSheetXlsx. (We always *build* https download URLs anyway.)
+  if (u.protocol !== 'https:') return null;
+  const host = (u.hostname || '').toLowerCase();
+
+  // Google Sheets ----------------------------------------------------------
+  if (host === 'docs.google.com') {
+    const m = u.pathname.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (!m) return null;
+    const sheetId = m[1];
+    return {
+      provider: 'google',
+      downloadUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`,
+      sourceId: sheetId,
+      displayName: `Google Sheet (${sheetId.slice(0, 8)}…)`,
+    };
+  }
+
+  // Excel on OneDrive / SharePoint / 1drv.ms ------------------------------
+  // Microsoft's "shares" API accepts any public share link encoded with the
+  // "u!" prefix and returns the underlying file content via a redirect — same
+  // trick the official OneDrive embed code uses. Works for personal OneDrive
+  // (1drv.ms, onedrive.live.com) and SharePoint share links.
+  const isOneDrive = host === '1drv.ms' || host === 'onedrive.live.com' || host.endsWith('.onedrive.live.com');
+  const isSharePoint = host.endsWith('.sharepoint.com');
+  if (isOneDrive || isSharePoint) {
+    const encoded = Buffer.from(trimmed, 'utf8')
+      .toString('base64')
+      .replace(/=+$/, '')
+      .replace(/\//g, '_')
+      .replace(/\+/g, '-');
+    const downloadUrl = `https://api.onedrive.com/v1.0/shares/u!${encoded}/root/content`;
+    const shortId = host === '1drv.ms'
+      ? u.pathname.replace(/^\/+/, '').slice(0, 16)
+      : (u.pathname.split('/').filter(Boolean).pop() || host).slice(0, 16);
+    return {
+      provider: 'excel',
+      downloadUrl,
+      sourceId: encoded.slice(0, 16),
+      displayName: `Excel sheet (${shortId || (isSharePoint ? 'SharePoint' : 'OneDrive')}…)`,
+    };
+  }
+
+  return null;
 }
 
-// Allowlist of hosts we're willing to download from after redirects. Google
-// occasionally redirects export downloads through googleusercontent.com, so
-// allow that subtree explicitly. Anything else is rejected as SSRF defense.
+// Allowlist of hosts we're willing to download from after redirects (SSRF
+// defense). Google may redirect through googleusercontent.com; OneDrive's
+// shares API typically redirects through *.1drv.com or *.sharepoint.com.
 function isAllowedDownloadHost(hostname) {
   if (!hostname) return false;
   const h = hostname.toLowerCase();
   return h === 'docs.google.com'
     || h === 'drive.google.com'
     || h === 'googleusercontent.com'
-    || h.endsWith('.googleusercontent.com');
+    || h.endsWith('.googleusercontent.com')
+    || h === 'api.onedrive.com'
+    || h === 'onedrive.live.com'
+    || h.endsWith('.onedrive.live.com')
+    || h === '1drv.ms'
+    || h === '1drv.com'
+    || h.endsWith('.1drv.com')
+    || h.endsWith('.sharepoint.com');
 }
 
-async function fetchGoogleSheetXlsx(exportUrl) {
+async function fetchSheetXlsx(downloadUrl, provider) {
   const MAX_BYTES = 25 * 1024 * 1024; // mirror multer's 25MB upload cap
+  const MAX_REDIRECTS = 6;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30000);
+  const providerLabel = provider === 'excel' ? 'Excel sheet' : 'Google Sheet';
+
+  // Walk the redirect chain manually so we can validate the host AND protocol
+  // of every hop (not just the final URL) against our allowlist. This blocks
+  // an attacker from chaining through an open redirect on a trusted host to
+  // reach an internal/untrusted target.
   let res;
+  let currentUrl = downloadUrl;
   try {
-    res = await fetch(exportUrl, { redirect: 'follow', signal: controller.signal });
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      let parsedUrl;
+      try { parsedUrl = new URL(currentUrl); } catch (_) {
+        throw new Error('The sheet provider returned an invalid redirect URL.');
+      }
+      if (parsedUrl.protocol !== 'https:') {
+        throw new Error('Refusing to follow a non-HTTPS redirect.');
+      }
+      if (!isAllowedDownloadHost(parsedUrl.hostname)) {
+        throw new Error('The link redirected to an untrusted host. Refusing to download.');
+      }
+      res = await fetch(currentUrl, { redirect: 'manual', signal: controller.signal });
+      // 3xx with a Location header → validate next hop and continue
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get('location');
+        if (!loc) break; // no location, treat as terminal response
+        // Resolve relative redirects against the current URL
+        currentUrl = new URL(loc, currentUrl).toString();
+        continue;
+      }
+      break; // terminal (2xx, 4xx, 5xx)
+    }
+    if (res && res.status >= 300 && res.status < 400) {
+      throw new Error('Too many redirects from the sheet provider.');
+    }
   } catch (err) {
     clearTimeout(timer);
-    if (err?.name === 'AbortError') throw new Error('The Google Sheet took too long to download. Try again.');
-    throw new Error('Could not reach Google Sheets. Check your internet connection.');
-  }
-
-  // After redirects, confirm we're still on a trusted Google host (defense
-  // against an attacker tricking us into fetching from elsewhere).
-  let finalHost = '';
-  try { finalHost = new URL(res.url).hostname; } catch (_) {}
-  if (!isAllowedDownloadHost(finalHost)) {
-    clearTimeout(timer);
-    throw new Error('The link redirected to an untrusted host. Refusing to download.');
+    if (err?.name === 'AbortError') throw new Error(`The ${providerLabel} took too long to download. Try again.`);
+    if (err?.message?.startsWith('Refusing') || err?.message?.startsWith('Too many') || err?.message?.startsWith('The sheet provider returned') || err?.message?.startsWith('The link redirected')) {
+      throw err;
+    }
+    throw new Error(`Could not reach ${provider === 'excel' ? 'OneDrive/SharePoint' : 'Google Sheets'}. Check your internet connection.`);
   }
 
   if (!res.ok) {
     clearTimeout(timer);
     if (res.status === 404) throw new Error('Sheet not found. Double-check the link.');
-    throw new Error(`Google Sheets returned an error (HTTP ${res.status}).`);
+    if (provider === 'excel' && (res.status === 401 || res.status === 403)) {
+      throw new Error("This Excel sheet isn't shared publicly. In Excel/OneDrive, click Share → \"Anyone with the link\" (set to View), then paste the link again.");
+    }
+    throw new Error(`Sheet provider returned an error (HTTP ${res.status}).`);
   }
 
   // Google returns a 200 HTML login page when the sheet is private — detect this.
   const contentType = (res.headers.get('content-type') || '').toLowerCase();
   if (contentType.includes('text/html')) {
     clearTimeout(timer);
+    if (provider === 'excel') {
+      throw new Error("This Excel sheet isn't shared publicly. In Excel/OneDrive, click Share → \"Anyone with the link\" (set to View), then paste the link again.");
+    }
     throw new Error("This sheet isn't shared publicly. In Google Sheets, click Share → General access → \"Anyone with the link\" → Viewer, then paste the link again.");
   }
 
@@ -445,21 +523,21 @@ exports.uploadSource = async (req, res) => {
 exports.addSourceLink = async (req, res) => {
   try {
     const rawUrl = String(req.body?.url || '').trim();
-    if (!rawUrl) return res.status(400).json({ error: 'Please paste a Google Sheets link.' });
+    if (!rawUrl) return res.status(400).json({ error: 'Please paste a Google Sheets or Excel share link.' });
 
     const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
-    const parsed = parseGoogleSheetsUrl(rawUrl);
+    const parsed = parseSheetUrl(rawUrl);
     if (!parsed) {
       return res.status(400).json({
-        error: "That doesn't look like a Google Sheets link. Paste a URL that starts with https://docs.google.com/spreadsheets/...",
+        error: "That doesn't look like a Google Sheets or Excel share link. Paste a URL from docs.google.com/spreadsheets, 1drv.ms, onedrive.live.com, or your SharePoint site.",
       });
     }
 
     let buffer;
     try {
-      buffer = await fetchGoogleSheetXlsx(parsed.exportUrl);
+      buffer = await fetchSheetXlsx(parsed.downloadUrl, parsed.provider);
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Could not fetch the sheet.' });
     }
@@ -475,10 +553,9 @@ exports.addSourceLink = async (req, res) => {
       return res.status(400).json({ error: 'The sheet appears to be empty.' });
     }
 
-    const displayName = `Google Sheet (${parsed.sheetId.slice(0, 8)}…)`;
     const sourceDoc = {
-      filename: `gsheet-${Date.now()}-${parsed.sheetId}.xlsx`,
-      originalName: displayName,
+      filename: `${parsed.provider}-${Date.now()}-${parsed.sourceId}.xlsx`,
+      originalName: parsed.displayName,
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       sizeBytes: buffer.length,
       kind: 'spreadsheet',

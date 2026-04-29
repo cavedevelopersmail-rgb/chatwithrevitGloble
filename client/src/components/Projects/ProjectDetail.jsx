@@ -27,7 +27,6 @@ const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
 
 const NAV_ITEMS = [
   { icon: <ChatBubbleIcon sx={{ fontSize: 18 }} />, label: "Conversations", id: "chat", path: "/chat" },
-  { icon: <BarChart sx={{ fontSize: 18 }} />, label: "Dashboard", id: "dashboard", path: "/dashboard" },
   { icon: <Folder sx={{ fontSize: 18 }} />, label: "Projects", id: "projects", path: "/projects" },
 ];
 
@@ -125,7 +124,7 @@ const ProjectDetail = () => {
 
   const handleAddLink = async () => {
     const url = linkUrl.trim();
-    if (!url) { setLinkError("Paste a Google Sheets link."); return; }
+    if (!url) { setLinkError("Paste a Google Sheets or Excel share link."); return; }
     setLinkError("");
     setLinkLoading(true);
     try {
@@ -328,7 +327,7 @@ const ProjectDetail = () => {
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = C.mutedLight; }}
               >
                 <LinkIcon sx={{ fontSize: 16 }} />
-                Add Google Sheet link
+                Add sheet link (Google or Excel)
               </button>
               {uploadError && <div style={{ color: C.error, fontSize: "0.75rem", marginTop: 8 }}>{uploadError}</div>}
               <p style={{ color: C.muted, fontSize: "0.7rem", margin: "8px 0 0", textAlign: "center" }}>PDF · Word · Excel · CSV · Text · max 25MB</p>
@@ -473,15 +472,15 @@ const ProjectDetail = () => {
         </div>
       </div>
 
-      {/* Add Google Sheet link dialog */}
-      <Dialog open={linkDialogOpen} onClose={closeLinkDialog} PaperProps={{ sx: { backgroundColor: C.card, color: C.text, minWidth: 440, maxWidth: 540, border: `1px solid ${C.border}` } }}>
+      {/* Add Google Sheet / Excel link dialog */}
+      <Dialog open={linkDialogOpen} onClose={closeLinkDialog} PaperProps={{ sx: { backgroundColor: C.card, color: C.text, minWidth: 460, maxWidth: 560, border: `1px solid ${C.border}` } }}>
         <DialogTitle sx={{ fontFamily: font, fontSize: "1rem", display: "flex", alignItems: "center", gap: 1 }}>
           <LinkIcon sx={{ fontSize: 18, color: C.accent }} />
-          Add a Google Sheet link
+          Add a sheet link (Google Sheets or Excel)
         </DialogTitle>
         <DialogContent>
           <p style={{ color: C.mutedLight, fontSize: "0.82rem", lineHeight: 1.55, marginTop: 0, marginBottom: 14 }}>
-            Paste the share link from Google Sheets. We'll import every tab as a source — it's a one-time snapshot, so re-add the link if the sheet changes.
+            Paste a share link from Google Sheets, OneDrive, or SharePoint. We'll import every tab as a source — it's a one-time snapshot, so re-add the link if the sheet changes.
           </p>
           <input
             autoFocus
@@ -489,17 +488,25 @@ const ProjectDetail = () => {
             value={linkUrl}
             onChange={(e) => { setLinkUrl(e.target.value); if (linkError) setLinkError(""); }}
             onKeyDown={(e) => { if (e.key === "Enter" && !linkLoading) handleAddLink(); }}
-            placeholder="https://docs.google.com/spreadsheets/d/..."
+            placeholder="https://docs.google.com/spreadsheets/... or https://1drv.ms/x/..."
             disabled={linkLoading}
             style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, backgroundColor: C.bg, color: C.text, border: `1px solid ${linkError ? C.error : C.border}`, fontFamily: font, fontSize: "0.85rem", outline: "none" }}
           />
           {linkError && <div style={{ color: C.error, fontSize: "0.78rem", marginTop: 8, lineHeight: 1.5 }}>{linkError}</div>}
           <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 8, backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-            <div style={{ color: C.text, fontSize: "0.76rem", fontWeight: 600, marginBottom: 6 }}>Make the sheet shareable first</div>
+            <div style={{ color: C.text, fontSize: "0.76rem", fontWeight: 600, marginBottom: 6 }}>Google Sheets — make it shareable</div>
             <ol style={{ color: C.mutedLight, fontSize: "0.76rem", lineHeight: 1.6, margin: 0, paddingLeft: 18 }}>
-              <li>In Google Sheets, click <strong style={{ color: C.text }}>Share</strong> (top right).</li>
+              <li>Click <strong style={{ color: C.text }}>Share</strong> (top right).</li>
               <li>Under <strong style={{ color: C.text }}>General access</strong>, choose <strong style={{ color: C.text }}>Anyone with the link</strong>.</li>
               <li>Set the role to <strong style={{ color: C.text }}>Viewer</strong>, copy the link, paste it above.</li>
+            </ol>
+          </div>
+          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 8, backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+            <div style={{ color: C.text, fontSize: "0.76rem", fontWeight: 600, marginBottom: 6 }}>Excel (OneDrive / SharePoint) — make it shareable</div>
+            <ol style={{ color: C.mutedLight, fontSize: "0.76rem", lineHeight: 1.6, margin: 0, paddingLeft: 18 }}>
+              <li>Open the file in Excel or OneDrive and click <strong style={{ color: C.text }}>Share</strong>.</li>
+              <li>Change access to <strong style={{ color: C.text }}>Anyone with the link</strong> with <strong style={{ color: C.text }}>Can view</strong>.</li>
+              <li>Click <strong style={{ color: C.text }}>Copy link</strong> and paste it above.</li>
             </ol>
           </div>
         </DialogContent>
