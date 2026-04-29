@@ -39,6 +39,11 @@ const projectService = {
     return data;
   },
 
+  addSourceLink: async (id, url) => {
+    const { data } = await axios.post(`${API_BASE_URL}/${id}/sources/link`, { url }, { headers: authHeader() });
+    return data;
+  },
+
   deleteSource: async (id, sourceId) => {
     const { data } = await axios.delete(`${API_BASE_URL}/${id}/sources/${sourceId}`, { headers: authHeader() });
     return data;

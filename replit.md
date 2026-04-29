@@ -7,7 +7,7 @@ A full-stack AI chat application built for UK Healthcare (NHS) professionals. Fe
 - **Frontend**: React 19 + Vite + Material UI 7 + Tailwind CSS 4 + React Router 7
 - **Backend**: Node.js + Express on port 8000
 - **Database**: MongoDB via Mongoose (external, configured via MONGODB_URI secret)
-- **AI**: OpenAI API with `@openai/agents` SDK (gpt-4o model with file search and web search tools)
+- **AI**: Google Gemini (`gemini-2.5-flash`) via `@google/generative-ai` for both the main Compliance House chat and the source-grounded Projects chat
 - **Auth**: JWT-based authentication with bcryptjs password hashing
 
 ## Project Structure
@@ -31,8 +31,16 @@ server/         # Express backend (port 8000)
 
 ## Environment Variables / Secrets Required
 - `MONGODB_URI` — MongoDB Atlas connection string
-- `OPENAI_API_KEY` — OpenAI API key for the Compliance House agent
+- `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) — Google Gemini API key, powers all AI features
 - `JWT_SECRET` — Secret key for signing JWT tokens
+- `GOOGLE_CLIENT_ID` (optional) — Google OAuth client ID for "Continue with Google" sign-in
+- See `server/.env.example` and `client/.env.example` for the complete documented list.
+- Server fails fast on startup with a friendly bullet list if any required variable is missing.
+
+## Projects feature — Sources
+Each project holds an array of "sources" the AI can answer from:
+- **File upload** — `POST /api/projects/:id/sources` (multipart, 25MB limit). Supports PDF, DOCX, XLSX/XLS/ODS, CSV/TSV, plain text, Markdown, JSON, HTML.
+- **Google Sheets link** — `POST /api/projects/:id/sources/link` with `{ url }`. Server validates the URL is `docs.google.com/spreadsheets/...`, builds the public XLSX export URL itself, downloads with a streaming 25MB cap and 30s timeout, validates the post-redirect host against an allowlist (`docs.google.com`, `drive.google.com`, `*.googleusercontent.com`) for SSRF defense, then parses with the same `parseWorkbook` used for file uploads. The original sheet URL is stored in `sourceSchema.sourceUrl` so the UI can show an "Open in Google Sheets" link. Sheet must be shared as "Anyone with the link → Viewer" — server returns a friendly instruction if it isn't.
 
 ## Key Configuration
 - Vite proxies `/api/*` requests to `http://localhost:8000` in development

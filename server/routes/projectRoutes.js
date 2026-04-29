@@ -22,6 +22,7 @@ router.put('/:id', auth, projectController.updateProject);
 router.delete('/:id', auth, projectController.deleteProject);
 
 router.post('/:id/sources', auth, upload.single('file'), projectController.uploadSource);
+router.post('/:id/sources/link', auth, projectController.addSourceLink);
 router.delete('/:id/sources/:sourceId', auth, projectController.deleteSource);
 
 router.post('/:id/chat', auth, projectController.chat);

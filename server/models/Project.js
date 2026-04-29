@@ -14,6 +14,7 @@ const sourceSchema = new mongoose.Schema({
   }],
   text: { type: String, default: '' },
   charCount: { type: Number, default: 0 },
+  sourceUrl: { type: String, default: '' },
   uploadedAt: { type: Date, default: Date.now },
 });
 

@@ -91,6 +91,98 @@ async function parseDocument(buffer, filename, mimetype) {
   throw new Error('Unsupported file type');
 }
 
+// Convert any Google Sheets URL into a public XLSX export URL.
+// Returns { exportUrl, sheetId, sheetName } or null if it's not a Google Sheets link.
+function parseGoogleSheetsUrl(rawUrl) {
+  let u;
+  try { u = new URL(String(rawUrl || '').trim()); } catch (_) { return null; }
+  if (u.hostname !== 'docs.google.com') return null;
+  const m = u.pathname.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!m) return null;
+  const sheetId = m[1];
+  // Export the entire workbook as XLSX so all tabs come through and our
+  // existing parseWorkbook() can handle the buffer with no special-casing.
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
+  return { exportUrl, sheetId };
+}
+
+// Allowlist of hosts we're willing to download from after redirects. Google
+// occasionally redirects export downloads through googleusercontent.com, so
+// allow that subtree explicitly. Anything else is rejected as SSRF defense.
+function isAllowedDownloadHost(hostname) {
+  if (!hostname) return false;
+  const h = hostname.toLowerCase();
+  return h === 'docs.google.com'
+    || h === 'drive.google.com'
+    || h === 'googleusercontent.com'
+    || h.endsWith('.googleusercontent.com');
+}
+
+async function fetchGoogleSheetXlsx(exportUrl) {
+  const MAX_BYTES = 25 * 1024 * 1024; // mirror multer's 25MB upload cap
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  let res;
+  try {
+    res = await fetch(exportUrl, { redirect: 'follow', signal: controller.signal });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err?.name === 'AbortError') throw new Error('The Google Sheet took too long to download. Try again.');
+    throw new Error('Could not reach Google Sheets. Check your internet connection.');
+  }
+
+  // After redirects, confirm we're still on a trusted Google host (defense
+  // against an attacker tricking us into fetching from elsewhere).
+  let finalHost = '';
+  try { finalHost = new URL(res.url).hostname; } catch (_) {}
+  if (!isAllowedDownloadHost(finalHost)) {
+    clearTimeout(timer);
+    throw new Error('The link redirected to an untrusted host. Refusing to download.');
+  }
+
+  if (!res.ok) {
+    clearTimeout(timer);
+    if (res.status === 404) throw new Error('Sheet not found. Double-check the link.');
+    throw new Error(`Google Sheets returned an error (HTTP ${res.status}).`);
+  }
+
+  // Google returns a 200 HTML login page when the sheet is private — detect this.
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('text/html')) {
+    clearTimeout(timer);
+    throw new Error("This sheet isn't shared publicly. In Google Sheets, click Share → General access → \"Anyone with the link\" → Viewer, then paste the link again.");
+  }
+
+  // Stream the body and abort early if it exceeds MAX_BYTES, so a hostile or
+  // accidentally huge response can't blow up memory.
+  const reader = res.body?.getReader?.();
+  if (!reader) {
+    clearTimeout(timer);
+    throw new Error('Could not read the sheet response.');
+  }
+
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BYTES) {
+        try { await reader.cancel(); } catch (_) {}
+        controller.abort();
+        throw new Error('Sheet is larger than 25MB. Please reduce its size or split it.');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (total === 0) throw new Error('The sheet appears to be empty.');
+  return Buffer.concat(chunks.map((c) => Buffer.from(c)));
+}
+
 function parseWorkbook(buffer) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const sheets = [];
@@ -209,6 +301,7 @@ exports.getProject = async (req, res) => {
       kind: s.kind || 'spreadsheet',
       charCount: s.charCount || 0,
       textPreview: s.kind === 'document' ? (s.text || '').slice(0, 400) : '',
+      sourceUrl: s.sourceUrl || '',
       uploadedAt: s.uploadedAt,
       sheets: (s.sheets || []).map((sh) => ({
         name: sh.name,
@@ -346,6 +439,79 @@ exports.uploadSource = async (req, res) => {
   } catch (e) {
     console.error('uploadSource error:', e);
     res.status(500).json({ error: 'Failed to upload source' });
+  }
+};
+
+exports.addSourceLink = async (req, res) => {
+  try {
+    const rawUrl = String(req.body?.url || '').trim();
+    if (!rawUrl) return res.status(400).json({ error: 'Please paste a Google Sheets link.' });
+
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const parsed = parseGoogleSheetsUrl(rawUrl);
+    if (!parsed) {
+      return res.status(400).json({
+        error: "That doesn't look like a Google Sheets link. Paste a URL that starts with https://docs.google.com/spreadsheets/...",
+      });
+    }
+
+    let buffer;
+    try {
+      buffer = await fetchGoogleSheetXlsx(parsed.exportUrl);
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Could not fetch the sheet.' });
+    }
+
+    let sheets;
+    try {
+      sheets = parseWorkbook(buffer);
+    } catch (err) {
+      console.error('Sheet parse error:', err);
+      return res.status(400).json({ error: 'Could not read the sheet. The file may be corrupted.' });
+    }
+    if (!sheets.length || sheets.every((s) => s.rowCount === 0)) {
+      return res.status(400).json({ error: 'The sheet appears to be empty.' });
+    }
+
+    const displayName = `Google Sheet (${parsed.sheetId.slice(0, 8)}…)`;
+    const sourceDoc = {
+      filename: `gsheet-${Date.now()}-${parsed.sheetId}.xlsx`,
+      originalName: displayName,
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      sizeBytes: buffer.length,
+      kind: 'spreadsheet',
+      sheets,
+      sourceUrl: rawUrl,
+    };
+
+    project.sources.push(sourceDoc);
+    project.updatedAt = new Date();
+    await project.save();
+
+    const newSource = project.sources[project.sources.length - 1];
+    res.json({
+      source: {
+        _id: newSource._id,
+        originalName: newSource.originalName,
+        sizeBytes: newSource.sizeBytes,
+        kind: newSource.kind,
+        charCount: 0,
+        textPreview: '',
+        sourceUrl: newSource.sourceUrl,
+        uploadedAt: newSource.uploadedAt,
+        sheets: (newSource.sheets || []).map((sh) => ({
+          name: sh.name,
+          columns: sh.columns,
+          rowCount: sh.rowCount,
+          preview: sh.rows.slice(0, 5),
+        })),
+      },
+    });
+  } catch (e) {
+    console.error('addSourceLink error:', e);
+    res.status(500).json({ error: 'Failed to add the linked sheet.' });
   }
 };
 

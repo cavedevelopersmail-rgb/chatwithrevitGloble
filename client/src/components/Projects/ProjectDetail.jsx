@@ -7,7 +7,8 @@ import {
 import {
   Logout, Menu as MenuIcon, Close, ArrowBack, Send,
   Chat as ChatBubbleIcon, BarChart, Folder, CloudUpload, Delete,
-  InsertDriveFile, Edit as EditIcon, Settings,
+  InsertDriveFile, Edit as EditIcon, Settings, Link as LinkIcon,
+  TableChart, OpenInNew,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import authService from "../../services/authService";
@@ -71,6 +72,10 @@ const ProjectDetail = () => {
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [instructionsDraft, setInstructionsDraft] = useState("");
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [linkLoading, setLinkLoading] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -116,6 +121,31 @@ const ProjectDetail = () => {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleAddLink = async () => {
+    const url = linkUrl.trim();
+    if (!url) { setLinkError("Paste a Google Sheets link."); return; }
+    setLinkError("");
+    setLinkLoading(true);
+    try {
+      await projectService.addSourceLink(id, url);
+      const data = await projectService.get(id);
+      setProject(data.project);
+      setLinkDialogOpen(false);
+      setLinkUrl("");
+    } catch (e) {
+      setLinkError(e?.response?.data?.error || "Could not add the sheet.");
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const closeLinkDialog = () => {
+    if (linkLoading) return;
+    setLinkDialogOpen(false);
+    setLinkError("");
+    setLinkUrl("");
   };
 
   const handleDeleteSource = async (sourceId) => {
@@ -290,6 +320,16 @@ const ProjectDetail = () => {
                 <CloudUpload sx={{ fontSize: 18 }} />
                 {uploading ? "Uploading…" : "Upload file"}
               </button>
+              <button
+                onClick={() => setLinkDialogOpen(true)}
+                disabled={uploading || linkLoading}
+                style={{ marginTop: 8, width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "9px 12px", borderRadius: 8, backgroundColor: "transparent", color: C.mutedLight, border: `1px solid ${C.border}`, cursor: (uploading || linkLoading) ? "default" : "pointer", fontFamily: font, fontSize: "0.82rem", fontWeight: 500 }}
+                onMouseEnter={(e) => { if (!uploading && !linkLoading) { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = C.text; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = C.mutedLight; }}
+              >
+                <LinkIcon sx={{ fontSize: 16 }} />
+                Add Google Sheet link
+              </button>
               {uploadError && <div style={{ color: C.error, fontSize: "0.75rem", marginTop: 8 }}>{uploadError}</div>}
               <p style={{ color: C.muted, fontSize: "0.7rem", margin: "8px 0 0", textAlign: "center" }}>PDF · Word · Excel · CSV · Text · max 25MB</p>
             </div>
@@ -305,12 +345,24 @@ const ProjectDetail = () => {
               ) : (
                 project.sources.map((s) => {
                   const isDoc = s.kind === "document";
+                  const isLinked = !!s.sourceUrl;
                   const ext = (s.originalName.split(".").pop() || "").toUpperCase();
                   return (
                     <div key={s._id} style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <InsertDriveFile sx={{ fontSize: 16, color: C.accent }} />
+                        {isLinked ? <TableChart sx={{ fontSize: 16, color: "#34a853" }} /> : <InsertDriveFile sx={{ fontSize: 16, color: C.accent }} />}
                         <span style={{ flex: 1, color: C.text, fontSize: "0.8rem", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.originalName}</span>
+                        {isLinked && (
+                          <Tooltip title="Open in Google Sheets">
+                            <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer"
+                              style={{ display: "flex", padding: 2, color: C.muted, textDecoration: "none" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = C.accent)}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
+                            >
+                              <OpenInNew sx={{ fontSize: 14 }} />
+                            </a>
+                          </Tooltip>
+                        )}
                         <button onClick={() => handleDeleteSource(s._id)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = C.error)}
                           onMouseLeave={(e) => (e.currentTarget.style.color = C.muted)}
@@ -323,7 +375,9 @@ const ProjectDetail = () => {
                           ? `${ext} · ${(s.charCount || 0).toLocaleString()} chars`
                           : (s.sheets || []).map((sh) => `${sh.name} (${sh.rowCount} rows × ${sh.columns.length} cols)`).join(" · ")}
                       </div>
-                      <div style={{ color: C.muted, fontSize: "0.68rem", marginTop: 2 }}>{formatBytes(s.sizeBytes)}</div>
+                      <div style={{ color: C.muted, fontSize: "0.68rem", marginTop: 2 }}>
+                        {isLinked ? "Linked Google Sheet · " : ""}{formatBytes(s.sizeBytes)}
+                      </div>
                     </div>
                   );
                 })
@@ -418,6 +472,51 @@ const ProjectDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Google Sheet link dialog */}
+      <Dialog open={linkDialogOpen} onClose={closeLinkDialog} PaperProps={{ sx: { backgroundColor: C.card, color: C.text, minWidth: 440, maxWidth: 540, border: `1px solid ${C.border}` } }}>
+        <DialogTitle sx={{ fontFamily: font, fontSize: "1rem", display: "flex", alignItems: "center", gap: 1 }}>
+          <LinkIcon sx={{ fontSize: 18, color: C.accent }} />
+          Add a Google Sheet link
+        </DialogTitle>
+        <DialogContent>
+          <p style={{ color: C.mutedLight, fontSize: "0.82rem", lineHeight: 1.55, marginTop: 0, marginBottom: 14 }}>
+            Paste the share link from Google Sheets. We'll import every tab as a source — it's a one-time snapshot, so re-add the link if the sheet changes.
+          </p>
+          <input
+            autoFocus
+            type="url"
+            value={linkUrl}
+            onChange={(e) => { setLinkUrl(e.target.value); if (linkError) setLinkError(""); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !linkLoading) handleAddLink(); }}
+            placeholder="https://docs.google.com/spreadsheets/d/..."
+            disabled={linkLoading}
+            style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, backgroundColor: C.bg, color: C.text, border: `1px solid ${linkError ? C.error : C.border}`, fontFamily: font, fontSize: "0.85rem", outline: "none" }}
+          />
+          {linkError && <div style={{ color: C.error, fontSize: "0.78rem", marginTop: 8, lineHeight: 1.5 }}>{linkError}</div>}
+          <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 8, backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
+            <div style={{ color: C.text, fontSize: "0.76rem", fontWeight: 600, marginBottom: 6 }}>Make the sheet shareable first</div>
+            <ol style={{ color: C.mutedLight, fontSize: "0.76rem", lineHeight: 1.6, margin: 0, paddingLeft: 18 }}>
+              <li>In Google Sheets, click <strong style={{ color: C.text }}>Share</strong> (top right).</li>
+              <li>Under <strong style={{ color: C.text }}>General access</strong>, choose <strong style={{ color: C.text }}>Anyone with the link</strong>.</li>
+              <li>Set the role to <strong style={{ color: C.text }}>Viewer</strong>, copy the link, paste it above.</li>
+            </ol>
+          </div>
+        </DialogContent>
+        <DialogActions sx={{ padding: "8px 24px 18px" }}>
+          <Button onClick={closeLinkDialog} disabled={linkLoading} sx={{ color: C.mutedLight, fontFamily: font, textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddLink}
+            disabled={linkLoading || !linkUrl.trim()}
+            variant="contained"
+            sx={{ backgroundColor: C.accent, color: "#fff", fontFamily: font, textTransform: "none", boxShadow: "none", "&:hover": { backgroundColor: "#4a7bd9", boxShadow: "none" }, "&.Mui-disabled": { backgroundColor: "rgba(91,141,238,0.25)", color: "rgba(255,255,255,0.5)" } }}
+          >
+            {linkLoading ? "Importing…" : "Add sheet"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Settings dialog */}
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)} PaperProps={{ sx: { backgroundColor: C.card, color: C.text, minWidth: 420, maxWidth: 520 } }}>
