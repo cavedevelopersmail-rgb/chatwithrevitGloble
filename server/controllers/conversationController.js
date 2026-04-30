@@ -32,7 +32,11 @@ exports.getConversations = async (req, res) => {
     const userId = req.userId;
     const { limit = 50, skip = 0 } = req.query;
 
-    const conversations = await Conversation.find({ userId })
+    // Main-chat list excludes project-scoped conversations (those live under
+    // each project's own sidebar in /api/projects/:id/conversations).
+    const mainChatFilter = { userId, $or: [{ projectId: null }, { projectId: { $exists: false } }] };
+
+    const conversations = await Conversation.find(mainChatFilter)
       .sort({ updatedAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip));
@@ -64,7 +68,7 @@ exports.getConversations = async (req, res) => {
       })
     );
 
-    const total = await Conversation.countDocuments({ userId });
+    const total = await Conversation.countDocuments(mainChatFilter);
 
     res.json({
       conversations: conversationsWithPreview,

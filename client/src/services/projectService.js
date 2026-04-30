@@ -49,8 +49,30 @@ const projectService = {
     return data;
   },
 
-  chat: async (id, message, history = []) => {
-    const { data } = await axios.post(`${API_BASE_URL}/${id}/chat`, { message, history }, { headers: authHeader() });
+  chat: async (id, message, history = [], conversationId = null) => {
+    const body = { message, history };
+    if (conversationId) body.conversationId = conversationId;
+    const { data } = await axios.post(`${API_BASE_URL}/${id}/chat`, body, { headers: authHeader() });
+    return data;
+  },
+
+  listConversations: async (id) => {
+    const { data } = await axios.get(`${API_BASE_URL}/${id}/conversations`, { headers: authHeader() });
+    return data;
+  },
+
+  getConversation: async (id, convId) => {
+    const { data } = await axios.get(`${API_BASE_URL}/${id}/conversations/${convId}`, { headers: authHeader() });
+    return data;
+  },
+
+  renameConversation: async (id, convId, title) => {
+    const { data } = await axios.put(`${API_BASE_URL}/${id}/conversations/${convId}`, { title }, { headers: authHeader() });
+    return data;
+  },
+
+  deleteConversation: async (id, convId) => {
+    const { data } = await axios.delete(`${API_BASE_URL}/${id}/conversations/${convId}`, { headers: authHeader() });
     return data;
   },
 };

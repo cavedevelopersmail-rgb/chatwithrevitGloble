@@ -1,5 +1,12 @@
+const mongoose = require('mongoose');
 const Project = require('../models/Project');
+const Conversation = require('../models/Conversation');
+const Chat = require('../models/Chat');
 const XLSX = require('xlsx');
+
+// Reject malformed ObjectIds with a controlled 400 instead of letting Mongoose
+// throw a CastError that surfaces as a 500.
+const isValidId = (v) => mongoose.isValidObjectId(v);
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
@@ -612,16 +619,35 @@ exports.deleteSource = async (req, res) => {
 
 exports.chat = async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
+    const { message, history = [], conversationId: incomingConvId } = req.body;
     if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required' });
 
     const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
+    // Resolve the conversation: load the existing one (if it belongs to this
+    // user AND this project) or create a new one. We only persist after we
+    // have a successful AI response so failed turns don't litter the history.
+    let conversation = null;
+    if (incomingConvId) {
+      if (!isValidId(incomingConvId)) {
+        return res.status(400).json({ error: 'Invalid conversationId' });
+      }
+      conversation = await Conversation.findOne({
+        _id: incomingConvId,
+        userId: req.userId,
+        projectId: project._id,
+      });
+      if (!conversation) {
+        return res.status(404).json({ error: 'Conversation not found for this project' });
+      }
+    }
+
     if (!project.sources.length) {
       return res.json({
         response: "There are no sources uploaded to this project yet. Please upload a file first (PDF, Word, Excel, CSV, or text).",
         usedSources: [],
+        conversationId: conversation ? String(conversation._id) : null,
       });
     }
 
@@ -691,8 +717,36 @@ Rules (follow EXACTLY):
       return res.status(500).json({ error: friendly });
     }
 
+    // Persist the turn. Create the conversation lazily on the very first
+    // successful turn so failed AI calls don't leave empty conversations.
+    try {
+      if (!conversation) {
+        const draftTitle = String(message).trim().replace(/\s+/g, ' ').slice(0, 60);
+        conversation = await Conversation.create({
+          userId: req.userId,
+          projectId: project._id,
+          title: draftTitle || 'New chat',
+        });
+      } else {
+        conversation.updatedAt = new Date();
+        await conversation.save();
+      }
+      await Chat.create({
+        conversationId: conversation._id,
+        userId: req.userId,
+        message: String(message).slice(0, 8000),
+        response: String(response).slice(0, 16000),
+        metadata: { model: GEMINI_MODEL },
+      });
+    } catch (persistErr) {
+      // Don't fail the whole request if persistence breaks — the user already
+      // has the answer. Just log it.
+      console.error('project chat persist error:', persistErr);
+    }
+
     res.json({
       response,
+      conversationId: conversation ? String(conversation._id) : null,
       usedSources: project.sources.map((s) => ({
         _id: s._id,
         originalName: s.originalName,
@@ -703,5 +757,120 @@ Rules (follow EXACTLY):
   } catch (e) {
     console.error('project chat error:', e);
     res.status(500).json({ error: 'Failed to get a response' });
+  }
+};
+
+// --- Project conversations (history sidebar) -----------------------------
+
+exports.listConversations = async (req, res) => {
+  try {
+    if (!isValidId(req.params.id)) return res.status(400).json({ error: 'Invalid project id' });
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId }).select('_id');
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    const convs = await Conversation.find({ userId: req.userId, projectId: project._id })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean();
+
+    const ids = convs.map((c) => c._id);
+    const counts = await Chat.aggregate([
+      { $match: { conversationId: { $in: ids } } },
+      { $group: { _id: '$conversationId', count: { $sum: 1 } } },
+    ]);
+    const countMap = counts.reduce((acc, c) => { acc[String(c._id)] = c.count; return acc; }, {});
+
+    res.json({
+      conversations: convs.map((c) => ({
+        _id: c._id,
+        title: c.title,
+        updatedAt: c.updatedAt,
+        createdAt: c.createdAt,
+        messageCount: countMap[String(c._id)] || 0,
+      })),
+    });
+  } catch (e) {
+    console.error('listConversations error:', e);
+    res.status(500).json({ error: 'Failed to list conversations' });
+  }
+};
+
+exports.getConversation = async (req, res) => {
+  try {
+    if (!isValidId(req.params.id) || !isValidId(req.params.convId)) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+    const conversation = await Conversation.findOne({
+      _id: req.params.convId,
+      userId: req.userId,
+      projectId: req.params.id,
+    }).lean();
+    if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+
+    const rows = await Chat.find({ conversationId: conversation._id })
+      .sort({ timestamp: 1 })
+      .lean();
+
+    // Flatten each Chat row (which stores user message + AI response together)
+    // into the {role, content, ts} shape the frontend already uses.
+    const messages = [];
+    for (const row of rows) {
+      messages.push({ role: 'user', content: row.message, ts: row.timestamp });
+      messages.push({ role: 'assistant', content: row.response, ts: row.timestamp });
+    }
+
+    res.json({
+      conversation: {
+        _id: conversation._id,
+        title: conversation.title,
+        updatedAt: conversation.updatedAt,
+        createdAt: conversation.createdAt,
+      },
+      messages,
+    });
+  } catch (e) {
+    console.error('getConversation error:', e);
+    res.status(500).json({ error: 'Failed to load conversation' });
+  }
+};
+
+exports.renameConversation = async (req, res) => {
+  try {
+    if (!isValidId(req.params.id) || !isValidId(req.params.convId)) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+    const title = String(req.body?.title || '').trim().slice(0, 120);
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+
+    const conv = await Conversation.findOneAndUpdate(
+      { _id: req.params.convId, userId: req.userId, projectId: req.params.id },
+      { title, updatedAt: new Date() },
+      { new: true }
+    );
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+
+    res.json({ conversation: { _id: conv._id, title: conv.title, updatedAt: conv.updatedAt } });
+  } catch (e) {
+    console.error('renameConversation error:', e);
+    res.status(500).json({ error: 'Failed to rename conversation' });
+  }
+};
+
+exports.deleteConversation = async (req, res) => {
+  try {
+    if (!isValidId(req.params.id) || !isValidId(req.params.convId)) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+    const conv = await Conversation.findOneAndDelete({
+      _id: req.params.convId,
+      userId: req.userId,
+      projectId: req.params.id,
+    });
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    await Chat.deleteMany({ conversationId: conv._id });
+    res.json({ message: 'Conversation deleted' });
+  } catch (e) {
+    console.error('deleteConversation error:', e);
+    res.status(500).json({ error: 'Failed to delete conversation' });
   }
 };

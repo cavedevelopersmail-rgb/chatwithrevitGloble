@@ -27,6 +27,11 @@ router.delete('/:id/sources/:sourceId', auth, projectController.deleteSource);
 
 router.post('/:id/chat', auth, projectController.chat);
 
+router.get('/:id/conversations', auth, projectController.listConversations);
+router.get('/:id/conversations/:convId', auth, projectController.getConversation);
+router.put('/:id/conversations/:convId', auth, projectController.renameConversation);
+router.delete('/:id/conversations/:convId', auth, projectController.deleteConversation);
+
 router.use((err, req, res, next) => {
   if (err) {
     return res.status(400).json({ error: err.message || 'Upload error' });

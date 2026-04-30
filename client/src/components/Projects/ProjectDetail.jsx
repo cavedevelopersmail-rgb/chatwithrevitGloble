@@ -8,7 +8,7 @@ import {
   Logout, Menu as MenuIcon, Close, ArrowBack, Send,
   Chat as ChatBubbleIcon, BarChart, Folder, CloudUpload, Delete,
   InsertDriveFile, Edit as EditIcon, Settings, Link as LinkIcon,
-  TableChart, OpenInNew,
+  TableChart, OpenInNew, AddComment,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import authService from "../../services/authService";
@@ -75,6 +75,9 @@ const ProjectDetail = () => {
   const [linkUrl, setLinkUrl] = useState("");
   const [linkError, setLinkError] = useState("");
   const [linkLoading, setLinkLoading] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [currentConvId, setCurrentConvId] = useState(null);
+  const [loadingConv, setLoadingConv] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -93,12 +96,61 @@ const ProjectDetail = () => {
         setInstructionsDraft(data.project.instructions || "");
       } catch (e) {
         console.error(e);
+      }
+      // Load this project's saved conversations and auto-open the most recent
+      // one so the user lands back where they left off.
+      try {
+        const { conversations: convs = [] } = await projectService.listConversations(id);
+        setConversations(convs);
+        if (convs.length > 0) {
+          await loadConversation(convs[0]._id, { silent: true });
+        }
+      } catch (e) {
+        console.error("Failed to load conversations", e);
       } finally {
         setLoading(false);
       }
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
+
+  const refreshConversations = async () => {
+    try {
+      const { conversations: convs = [] } = await projectService.listConversations(id);
+      setConversations(convs);
+    } catch (e) { console.error(e); }
+  };
+
+  const loadConversation = async (convId, opts = {}) => {
+    if (!convId) return;
+    if (!opts.silent) setLoadingConv(true);
+    try {
+      const { conversation, messages: rows = [] } = await projectService.getConversation(id, convId);
+      setCurrentConvId(conversation._id);
+      setMessages(rows.map((m) => ({ role: m.role, content: m.content, ts: m.ts ? new Date(m.ts).getTime() : Date.now() })));
+    } catch (e) {
+      console.error("Failed to load conversation", e);
+    } finally {
+      setLoadingConv(false);
+    }
+  };
+
+  const handleNewConversation = () => {
+    setCurrentConvId(null);
+    setMessages([]);
+    setInput("");
+  };
+
+  const handleDeleteConversation = async (convId, e) => {
+    e?.stopPropagation();
+    if (!window.confirm("Delete this conversation? This can't be undone.")) return;
+    try {
+      await projectService.deleteConversation(id, convId);
+      setConversations((cs) => cs.filter((c) => c._id !== convId));
+      if (currentConvId === convId) handleNewConversation();
+    } catch (err) { console.error(err); }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -164,8 +216,17 @@ const ProjectDetail = () => {
     setThinking(true);
     try {
       const history = messages.map((m) => ({ role: m.role, content: m.content }));
-      const data = await projectService.chat(id, text, history);
+      const data = await projectService.chat(id, text, history, currentConvId);
       setMessages((m) => [...m, { role: "assistant", content: data.response, ts: Date.now(), sources: data.usedSources || [] }]);
+      // Track the conversation id (new on first message) and refresh the
+      // sidebar so the title and updatedAt order stay accurate.
+      if (data.conversationId) {
+        const isNew = !currentConvId;
+        setCurrentConvId(data.conversationId);
+        if (isNew || conversations[0]?._id !== data.conversationId) {
+          refreshConversations();
+        }
+      }
     } catch (err) {
       setMessages((m) => [...m, { role: "assistant", content: err?.response?.data?.error || "Something went wrong.", ts: Date.now(), error: true }]);
     } finally {
@@ -334,6 +395,52 @@ const ProjectDetail = () => {
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 12px 20px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 6px 8px" }}>
+                <div style={{ color: C.muted, fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  Conversations ({conversations.length})
+                </div>
+                <Tooltip title="New conversation">
+                  <button onClick={handleNewConversation} style={{ background: "none", border: "none", cursor: "pointer", color: C.accentText, display: "flex", alignItems: "center", gap: 4, padding: 4, fontFamily: font, fontSize: "0.72rem", fontWeight: 600 }}>
+                    <AddComment sx={{ fontSize: 14 }} /> New
+                  </button>
+                </Tooltip>
+              </div>
+              {conversations.length === 0 ? (
+                <div style={{ color: C.muted, fontSize: "0.78rem", padding: "8px", textAlign: "center" }}>
+                  No conversations yet. Send a message to start one.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 18 }}>
+                  {conversations.map((c) => {
+                    const active = c._id === currentConvId;
+                    return (
+                      <div
+                        key={c._id}
+                        onClick={() => loadConversation(c._id)}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", borderRadius: 8, cursor: "pointer", backgroundColor: active ? C.accentDim : "transparent", border: `1px solid ${active ? C.accent : "transparent"}` }}
+                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = C.cardHover; }}
+                        onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = "transparent"; }}
+                      >
+                        <ChatBubbleIcon sx={{ fontSize: 14, color: active ? C.accentText : C.muted, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0, color: active ? C.text : C.mutedLight, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.title}>
+                          {c.title || "Untitled chat"}
+                        </div>
+                        <Tooltip title="Delete conversation">
+                          <button
+                            onClick={(e) => handleDeleteConversation(c._id, e)}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2, opacity: 0.6 }}
+                            onMouseEnter={(e) => { e.currentTarget.style.color = C.error; e.currentTarget.style.opacity = 1; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = C.muted; e.currentTarget.style.opacity = 0.6; }}
+                          >
+                            <Delete sx={{ fontSize: 13 }} />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div style={{ color: C.muted, fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 6px 8px" }}>
                 Sources ({project.sources.length})
               </div>
