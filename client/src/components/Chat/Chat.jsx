@@ -124,16 +124,30 @@ const Chat = () => {
         if (!token) { navigate("/login"); return; }
         const userData = await authService.getProfile();
         setUser(userData);
-        const convData = await conversationService.getConversations();
-        setConversations(convData.conversations || []);
-        if (convData.conversations && convData.conversations.length > 0) {
-          const firstConv = convData.conversations[0];
-          setCurrentConversationId(firstConv._id);
-          const chatHistory = await chatService.getChatHistory(firstConv._id);
-          setMessages(chatHistory.chats || []);
-        }
-      } catch {
+      } catch (err) {
+        console.error("Auth/profile load failed:", err);
         navigate("/login");
+        return;
+      }
+      // Conversation + history loads are best-effort: failures here should NOT
+      // bounce the user back to /login. Just log and surface an empty state.
+      try {
+        const convData = await conversationService.getConversations();
+        const convs = convData.conversations || [];
+        setConversations(convs);
+        if (convs.length > 0) {
+          const firstConv = convs[0];
+          setCurrentConversationId(firstConv._id);
+          try {
+            const chatHistory = await chatService.getChatHistory(firstConv._id);
+            setMessages(chatHistory.chats || []);
+          } catch (histErr) {
+            console.error("Failed to load chat history for", firstConv._id, histErr);
+            setMessages([]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load conversations list:", err);
       } finally {
         setLoading(false);
       }
@@ -183,12 +197,15 @@ const Chat = () => {
   };
 
   const handleSelectConversation = async (convId) => {
+    setCurrentConversationId(convId);
+    setMessages([]); // clear stale messages while loading
     try {
-      setCurrentConversationId(convId);
       const chatHistory = await chatService.getChatHistory(convId);
       setMessages(chatHistory.chats || []);
       if (isMobile) setSidebarOpen(false);
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error("Failed to load conversation messages:", convId, err);
+    }
   };
 
   const handleCopyMessage = (text) => {
@@ -354,6 +371,15 @@ const Chat = () => {
           </Tooltip>
         </div>
 
+        {conversations.length === 0 && (
+          <div style={{ padding: "16px 8px", color: C.muted, fontSize: "0.78rem", textAlign: "center", lineHeight: 1.5 }}>
+            No previous conversations found.
+            <div style={{ marginTop: 6, color: C.mutedLight, fontSize: "0.72rem" }}>
+              Send a message to start one.
+            </div>
+          </div>
+        )}
+
         {conversations.map((conv) => (
           <div
             key={conv._id}
@@ -387,9 +413,16 @@ const Chat = () => {
                 sx={{ flex: 1, "& .MuiInput-underline:after": { borderBottomColor: C.accent } }}
               />
             ) : (
-              <span style={{ flex: 1, fontSize: "0.8rem", color: currentConversationId === conv._id ? C.text : C.mutedLight, fontWeight: currentConversationId === conv._id ? 500 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {conv.title}
-              </span>
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>
+                <span style={{ fontSize: "0.8rem", color: currentConversationId === conv._id ? C.text : C.mutedLight, fontWeight: currentConversationId === conv._id ? 500 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {conv.title || "Untitled"}
+                </span>
+                {conv.updatedAt && (
+                  <span style={{ fontSize: "0.65rem", color: C.muted }}>
+                    {new Date(conv.updatedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+              </div>
             )}
             <div style={{ display: "flex", gap: "2px", flexShrink: 0, opacity: 0 }} className="conv-actions">
               <button
@@ -506,7 +539,15 @@ const Chat = () => {
             display: "flex", flexDirection: "column", gap: "16px",
             scrollbarWidth: "thin", scrollbarColor: `${C.border} transparent`,
           }}>
-            {messages.length === 0 && !isTyping && !newMessage.trim() && (
+            {messages.length === 0 && !isTyping && currentConversationId && (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", color: C.muted, fontFamily: font, gap: 8, textAlign: "center", padding: "2rem 1rem" }}>
+                <ChatBubbleIcon sx={{ fontSize: 36, opacity: 0.4 }} />
+                <div style={{ fontSize: "0.95rem", fontWeight: 500, color: C.mutedLight }}>This conversation has no messages yet.</div>
+                <div style={{ fontSize: "0.82rem" }}>Type a message below to get started.</div>
+              </div>
+            )}
+
+            {messages.length === 0 && !isTyping && !newMessage.trim() && !currentConversationId && (
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}

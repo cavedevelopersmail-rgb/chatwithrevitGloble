@@ -135,32 +135,29 @@ exports.sendMessage = async (req, res) => {
       return res.status(500).json({ error: "Gemini API Key not configured" });
     }
 
-    let currentConversationId = conversationId;
+    // Resolve the conversation lazily: if the caller already has one we
+    // verify ownership and bump updatedAt; otherwise we DEFER creation until
+    // after the AI call succeeds so a failed Gemini call doesn't leave behind
+    // an empty orphan conversation in the sidebar (the bug that caused the
+    // empty "what is compliance" rows users were seeing in History).
+    let currentConversationId = conversationId || null;
+    let existingConversation = null;
 
-    if (!currentConversationId) {
-      const newConversation = new Conversation({
-        userId,
-        title: message.substring(0, 50),
-      });
-      await newConversation.save();
-      currentConversationId = newConversation._id;
-    } else {
-      const conversation = await Conversation.findOne({
+    if (currentConversationId) {
+      existingConversation = await Conversation.findOne({
         _id: currentConversationId,
         userId,
       });
-
-      if (!conversation) {
+      if (!existingConversation) {
         return res.status(404).json({ error: "Conversation not found" });
       }
-
-      conversation.updatedAt = new Date();
-      await conversation.save();
     }
 
-    const previousChats = await Chat.find({ conversationId: currentConversationId })
-      .sort({ timestamp: 1 })
-      .limit(10);
+    const previousChats = currentConversationId
+      ? await Chat.find({ conversationId: currentConversationId })
+          .sort({ timestamp: 1 })
+          .limit(10)
+      : [];
 
     const previousMessages = [];
     previousChats.forEach((chat) => {
@@ -185,6 +182,20 @@ exports.sendMessage = async (req, res) => {
         error: friendly,
         details: apiError.message,
       });
+    }
+
+    // AI succeeded — now safely create the conversation if it didn't exist,
+    // or bump updatedAt on the existing one so the sidebar re-orders.
+    if (!currentConversationId) {
+      const newConversation = new Conversation({
+        userId,
+        title: String(message).trim().substring(0, 50) || "New chat",
+      });
+      await newConversation.save();
+      currentConversationId = newConversation._id;
+    } else if (existingConversation) {
+      existingConversation.updatedAt = new Date();
+      await existingConversation.save();
     }
 
     const chat = new Chat({
