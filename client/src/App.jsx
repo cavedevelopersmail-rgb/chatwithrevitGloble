@@ -6,7 +6,6 @@ import Register from './components/Auth/Register';
 import Chat from './components/Chat/Chat';
 import Projects from './components/Projects/Projects';
 import ProjectDetail from './components/Projects/ProjectDetail';
-import Landing from './components/Landing/Landing';
 import authService from './services/authService';
 
 const theme = createTheme({
@@ -36,7 +35,6 @@ const App = () => {
       <CssBaseline />
       <Router>
         <Routes>
-          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route
@@ -63,7 +61,7 @@ const App = () => {
               </PrivateRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
     </ThemeProvider>

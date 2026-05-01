@@ -38,7 +38,6 @@ const authRoutes = require("./routes/authRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const conversationRoutes = require("./routes/conversationRoutes");
 const projectRoutes = require("./routes/projectRoutes");
-const leadRoutes = require("./routes/leadRoutes");
 
 const app = express();
 const port = process.env.PORT || 8000;
@@ -63,7 +62,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/projects", projectRoutes);
-app.use("/api/leads", leadRoutes);
 
 // SPA fallback — all non-API routes serve the React app
 app.get("*", (req, res) => {
