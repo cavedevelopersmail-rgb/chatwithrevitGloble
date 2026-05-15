@@ -16,7 +16,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "https://apirivetassist.rivetai.co.uk",
         changeOrigin: true,
       },
     },
